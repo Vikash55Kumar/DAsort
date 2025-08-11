@@ -2,10 +2,12 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     "moduleResolution": "bundler",
+    "module": "ESNext",
+    "target": "ES2020",
     "rewriteRelativeImportExtensions": true
   },
-  "exclude": ["**/*.test.ts", "**/*.spec.ts", "node_modules"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
 }
-// "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
