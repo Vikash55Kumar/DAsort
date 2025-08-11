@@ -1,0 +1,434 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER MANAGEMENT & ROLES
+// ============================================================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String   // Hashed password
+  role      UserRole @default(USER)
+  phone     String?
+  region    String?  // Geographic assignment
+  language  String   @default("en") // Preferred language (en, hi, etc.)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  searches      SearchHistory[]
+  datasets      Dataset[]
+  feedbacks     SearchFeedback[]
+  auditLogs     AuditLog[]
+  
+  @@map("users")
+}
+
+enum UserRole {
+  USER      // Regular users (enumerators, officers, analysts)
+  ADMIN     // System administrators
+}
+
+// ============================================================================
+// NCO CLASSIFICATION SYSTEM (Core of the application)
+// ============================================================================
+
+model NCOCode {
+  id              String   @id @default(cuid())
+  ncoCode         String   @unique // 8-digit NCO code (e.g., 75310110)
+  title           String   // Occupation title
+  description     String   @db.Text // Detailed job description
+  
+  // Hierarchical Structure (4-level hierarchy)
+  majorGroup      String   // 1-digit (e.g., 7 - Craft and related trades)
+  subMajorGroup   String   // 2-digit (e.g., 75 - Food processing)
+  minorGroup      String   // 3-digit (e.g., 753 - Food processing workers)
+  unitGroup       String   // 4-digit (e.g., 7531 - Bakers, pastry cooks)
+  
+  // Classification metadata
+  sector          String?  // Economic sector
+  skillLevel      String?  // Skill level requirement
+  educationLevel  String?  // Minimum education
+  
+  // Search optimization (for Python AI service)
+  keywords        String[] // Related keywords for search
+  synonyms        String[] // Alternative terms
+  
+  // Status & versioning
+  version         String   @default("NCO-2015")
+  isActive        Boolean  @default(true)
+  isVerified      Boolean  @default(false)
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  searchResults   SearchResult[]
+  feedbacks       SearchFeedback[]
+  
+  @@index([ncoCode])
+  @@index([majorGroup, subMajorGroup, minorGroup, unitGroup])
+  @@index([sector])
+  @@index([keywords])
+  @@map("nco_codes")
+}
+
+// ============================================================================
+// SEARCH SYSTEM (Backend manages data, Python AI does processing)
+// ============================================================================
+
+model SearchHistory {
+  id              String   @id @default(cuid())
+  
+  // User context
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  
+  // Search input
+  query           String   @db.Text
+  language        String   @default("en")
+  inputMethod     InputMethod @default(TEXT)
+  
+  // Search metadata
+  sessionId       String?  // Group related searches
+  userAgent       String?
+  ipAddress       String?
+  
+  // AI Processing info (from Python service)
+  processingTime  Int?     // Milliseconds
+  totalResults    Int      @default(0)
+  aiServiceStatus String   @default("success") // success, error, timeout
+  
+  // Timestamps
+  searchedAt      DateTime @default(now())
+  
+  // Relations
+  results         SearchResult[]
+  feedback        SearchFeedback?
+  
+  @@index([userId, searchedAt])
+  @@index([language])
+  @@index([sessionId])
+  @@map("search_history")
+}
+
+enum InputMethod {
+  TEXT
+  VOICE
+  API
+}
+
+model SearchResult {
+  id              String   @id @default(cuid())
+  
+  // Search reference
+  searchId        String
+  search          SearchHistory @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  
+  // NCO match
+  ncoCodeId       String
+  ncoCode         NCOCode  @relation(fields: [ncoCodeId], references: [id])
+  
+  // AI scoring (provided by Python service)
+  relevanceScore  Float    // Semantic similarity score (0-1)
+  confidenceScore Float    // AI confidence in match (0-1)
+  rank            Int      // Result ranking (1, 2, 3...)
+  
+  // Match details (from Python AI)
+  matchType       MatchType
+  matchedKeywords String[] // Which keywords triggered the match
+  explanation     String?  // Why this match was suggested
+  
+  // User interaction tracking
+  wasSelected     Boolean  @default(false)
+  wasViewed       Boolean  @default(false)
+  viewedAt        DateTime?
+  selectedAt      DateTime?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([searchId, rank])
+  @@index([relevanceScore])
+  @@map("search_results")
+}
+
+enum MatchType {
+  EXACT_TITLE     // Exact title match
+  SEMANTIC        // AI semantic match
+  KEYWORD         // Keyword match
+  SYNONYM         // Synonym match
+  FUZZY           // Fuzzy string match
+  FALLBACK        // Fallback suggestion
+}
+
+// ============================================================================
+// USER FEEDBACK & LEARNING SYSTEM
+// ============================================================================
+
+model SearchFeedback {
+  id              String   @id @default(cuid())
+  
+  // References
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  searchId        String   @unique
+  search          SearchHistory @relation(fields: [searchId], references: [id])
+  selectedCodeId  String?
+  selectedCode    NCOCode? @relation(fields: [selectedCodeId], references: [id])
+  
+  // Feedback data
+  rating          Int?     // 1-5 star rating
+  isCorrect       Boolean? // Was the top result correct?
+  wasHelpful      Boolean? // Was the search helpful?
+  
+  // Manual override & corrections
+  manualCodeId    String?  // If user manually selected different code
+  comments        String?  @db.Text
+  correctionReason String? // Why user chose different result
+  
+  // Improvement suggestions (sent to Python AI for learning)
+  suggestedKeywords String[]
+  reportedIssue   String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([rating])
+  @@index([isCorrect])
+  @@map("search_feedback")
+}
+
+// ============================================================================
+// DATA MANAGEMENT & BULK PROCESSING
+// ============================================================================
+
+model Dataset {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?       @db.Text
+  type            DatasetType
+  status          DatasetStatus @default(DRAFT)
+  
+  // File information
+  originalFileName String?
+  fileSize        Int?          // Bytes
+  fileUrl         String?       // Storage URL
+  mimeType        String?       // File type
+  
+  // Processing metadata
+  totalRecords    Int           @default(0)
+  processedRecords Int          @default(0)
+  errorRecords    Int           @default(0)
+  
+  // AI Processing (handled by Python service)
+  aiProcessingStatus String?    // pending, processing, completed, failed
+  aiProcessingStarted DateTime?
+  aiProcessingCompleted DateTime?
+  
+  // Ownership
+  createdBy       String
+  creator         User          @relation(fields: [createdBy], references: [id])
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  records         DataRecord[]
+  
+  @@map("datasets")
+}
+
+enum DatasetType {
+  NCO_MASTER_DATA    // Official NCO codes
+  SURVEY_DATA        // Field survey data
+  BULK_CLASSIFICATION // Bulk job classification requests
+  USER_UPLOAD        // User uploaded data
+  TRAINING_DATA      // Data for AI model improvement
+}
+
+enum DatasetStatus {
+  DRAFT              // Initial upload
+  VALIDATING         // Backend validation in progress
+  READY_FOR_AI       // Ready to send to Python service
+  AI_PROCESSING      // Python AI is processing
+  COMPLETED          // Processing completed
+  ERROR              // Error occurred
+  ARCHIVED           // Archived dataset
+}
+
+model DataRecord {
+  id              String   @id @default(cuid())
+  
+  // Dataset reference
+  datasetId       String
+  dataset         Dataset  @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  
+  // Record data
+  originalData    Json     // Raw input data
+  processedData   Json?    // Cleaned/processed data
+  
+  // Processing status
+  isProcessed     Boolean  @default(false)
+  hasErrors       Boolean  @default(false)
+  errorMessage    String?  @db.Text
+  
+  // AI Classification results (from Python service)
+  suggestedCodeId String?  // Suggested NCO code
+  confidenceScore Float?   // AI confidence
+  alternativeCodes Json?   // Other possible codes with scores
+  
+  // Manual verification
+  manualCodeId    String?  // Manually verified code
+  isVerified      Boolean  @default(false)
+  verifiedBy      String?  // User who verified
+  verifiedAt      DateTime?
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  processedAt     DateTime?
+  
+  @@index([datasetId, isProcessed])
+  @@index([isVerified])
+  @@map("data_records")
+}
+
+// ============================================================================
+// SYSTEM CONFIGURATION & ADMIN
+// ============================================================================
+
+model SystemConfig {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  value           String   @db.Text
+  description     String?  @db.Text
+  category        String   @default("general")
+  dataType        String   @default("string") // string, number, boolean, json
+  isPublic        Boolean  @default(false)    // Can be accessed by frontend
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("system_config")
+}
+
+model AuditLog {
+  id              String     @id @default(cuid())
+  
+  // User context
+  userId          String?
+  user            User?      @relation(fields: [userId], references: [id])
+  
+  // Action details
+  action          String     // e.g., "search", "upload_dataset", "manual_classify"
+  resourceType    String     // e.g., "nco_code", "dataset", "search"
+  resourceId      String?    // ID of affected resource
+  
+  // Request details
+  method          String?    // HTTP method
+  endpoint        String?    // API endpoint
+  userAgent       String?
+  ipAddress       String?
+  
+  // Changes & metadata
+  metadata        Json?      // Additional context data
+  success         Boolean    @default(true)
+  errorMessage    String?    @db.Text
+  duration        Int?       // Milliseconds
+  
+  createdAt       DateTime   @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// ANALYTICS & REPORTING (Backend aggregates data)
+// ============================================================================
+
+model SearchAnalytics {
+  id              String   @id @default(cuid())
+  
+  // Time dimension
+  date            DateTime @db.Date
+  hour            Int?     // 0-23 for hourly analytics
+  
+  // Dimensions
+  language        String
+  userRole        String?
+  region          String?
+  inputMethod     String?
+  
+  // Metrics
+  totalSearches   Int      @default(0)
+  uniqueUsers     Int      @default(0)
+  avgResponseTime Float?   // Milliseconds
+  successRate     Float?   // Percentage of successful searches
+  
+  // AI Performance metrics
+  avgConfidenceScore Float? // Average AI confidence
+  aiServiceUptime    Float? // Percentage AI service was available
+  
+  // Popular content
+  topQueries      Json?    // Array of popular search terms
+  topNCOCodes     Json?    // Array of frequently found codes
+  
+  // Quality metrics
+  avgUserRating   Float?
+  feedbackCount   Int      @default(0)
+  correctionRate  Float?   // How often users correct AI suggestions
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([date, hour, language, userRole, region, inputMethod])
+  @@index([date])
+  @@map("search_analytics")
+}
+
+// ============================================================================
+// API INTEGRATION TRACKING (Communication with Python AI service)
+// ============================================================================
+
+model APIRequest {
+  id              String   @id @default(cuid())
+  
+  // Request details
+  endpoint        String   // Python AI service endpoint
+  method          String   // POST, GET, etc.
+  requestData     Json?    // Data sent to Python service
+  
+  // Response details
+  statusCode      Int?     // HTTP status code
+  responseData    Json?    // Response from Python service
+  responseTime    Int?     // Milliseconds
+  
+  // Context
+  userId          String?  // User who triggered the request
+  searchId        String?  // Related search if applicable
+  datasetId       String?  // Related dataset if applicable
+  
+  // Status
+  success         Boolean  @default(false)
+  errorMessage    String?  @db.Text
+  retryCount      Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([endpoint, createdAt])
+  @@index([success, createdAt])
+  @@map("api_requests")
+}
+
+
