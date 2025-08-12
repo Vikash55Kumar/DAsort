@@ -5,6 +5,7 @@ import { registerAsync, clearError } from '../../store/slices/authSlice';
 import { validateEmail, validateRequired } from '../../utils/validators';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import logo from '../../assets/logo.png'; // Adjust the path as necessary
 
 const Register: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -88,14 +89,7 @@ const Register: React.FC = () => {
       <div className="max-w-xl w-full bg-white/95 backdrop-blur-sm border border-white/20 shadow-2xl rounded-xl p-8">
         {/* Header */}
         <div className="flex flex-col items-center">
-          <div
-            className="flex items-center justify-center h-16 w-16 rounded-full shadow-lg"
-            style={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            }}
-          >
-            <span className="text-white text-2xl">🏛️</span>
-          </div>
+          <img src={logo} alt="Logo" className="h-18 w-36" />
           <h2 className="mt-4 text-2xl font-bold text-gray-800 tracking-wide">
             NCO Classification Portal
           </h2>
