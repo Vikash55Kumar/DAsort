@@ -7,6 +7,7 @@ import datasetRouter from "./router/dataset.router";
 import adminRouter from "./router/admin.router";
 import analyticsRouter from "./router/analytics.router";
 import utilityRouter from "./router/utility.router";
+import path from "path";
 const app = express();
 
 // CORS middleware
@@ -24,7 +25,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-
+// API routes - must come before static file serving
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/jobs", jobRouter);
 app.use("/api/v1/datasets", datasetRouter);
@@ -33,11 +34,17 @@ app.use("/api/v1/analytics", analyticsRouter);
 app.use("/api/v1/utility", utilityRouter);
 
 
+// Serve static files from React build
+const buildPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(buildPath));
 
-
-
-
-
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(buildPath, 'index.html'));
+});
 
 
 // Error handling middleware

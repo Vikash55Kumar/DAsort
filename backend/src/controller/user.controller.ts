@@ -37,7 +37,8 @@ const registerUser = asyncHandler(async (req: Request, res: Response): Promise<v
         language = "en",
         role = "USER"
     }: UserCreateInput = req.body;
-
+    console.log("body", req.body);
+    
     // Validation
     if (!name || !email || !password) {
         throw new ApiError(400, "Name, email and password are required.");

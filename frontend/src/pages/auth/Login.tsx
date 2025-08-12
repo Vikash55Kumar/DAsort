@@ -5,6 +5,7 @@ import { loginAsync, clearError } from '../../store/slices/authSlice';
 import { validateEmail, validateRequired } from '../../utils/validators';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import logo from '../../assets/logo.png'; 
 
 const Login: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -24,7 +25,6 @@ const Login: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    // Clear any previous errors when component mounts
     if (error) {
       dispatch(clearError());
     }
@@ -33,7 +33,6 @@ const Login: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -41,61 +40,60 @@ const Login: React.FC = () => {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-
     const emailError = validateRequired(formData.email, 'Email');
     if (emailError) {
       newErrors.email = emailError;
     } else if (!validateEmail(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-
     const passwordError = validateRequired(formData.password, 'Password');
     if (passwordError) {
       newErrors.password = passwordError;
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-
     try {
-      await dispatch(loginAsync(formData)).unwrap();
+      const data = await dispatch(loginAsync(formData)).unwrap();
+      console.log('Login successful:', data);
       navigate('/dashboard');
-    } catch (error) {
+    } catch {
       setErrors({ general: 'Invalid email or password' });
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-            <span className="text-2xl">🔐</span>
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+    <div
+      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+
+    >
+      <div className="max-w-lg w-full bg-white/95 backdrop-blur-sm border border-white/20 shadow-2xl rounded-xl p-8">
+        {/* Logo & Title */}
+        <div className="flex flex-col items-center">
+          <img src={logo} alt="Logo" className="h-18 w-36" />
+          <h2 className="mt-4 text-2xl font-bold text-gray-800 tracking-wide">
+            NCO Classification Portal
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-              create a new account
-            </Link>
+          <p className="mt-1 text-md font-bold text-gray-500">
+            Please sign in to continue
           </p>
         </div>
-        
+
+        {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {errors.general && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-              {errors.general}
+            <div className="bg-red-50 border-l-4 border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm shadow-sm">
+              <div className="flex items-center">
+                <span className="mr-2">⚠️</span>
+                {errors.general}
+              </div>
             </div>
           )}
-          
+
           <div className="space-y-4">
             <Input
               label="Email address"
@@ -107,7 +105,6 @@ const Login: React.FC = () => {
               placeholder="Enter your email"
               required
             />
-            
             <Input
               label="Password"
               type="password"
@@ -121,33 +118,43 @@ const Login: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <label className="flex items-center text-sm text-gray-700">
               <input
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-[#00295d] focus:ring-[#00295d] border-gray-300"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
-                Forgot your password?
-              </Link>
-            </div>
+              <span className="ml-2">Remember me</span>
+            </label>
+            <Link
+              to="/forgot-password"
+              className="text-sm font-medium"
+              style={{ color: '#00295d' }}
+            >
+              Forgot your password?
+            </Link>
           </div>
 
           <Button
             type="submit"
             loading={loading}
-            className="w-full"
+            className="w-full bg-[#00295d] hover:bg-[#01408f] text-white font-medium"
             size="lg"
           >
             Sign in
           </Button>
+
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Don't have an account?{' '}
+            <Link
+              to="/register"
+              className="font-medium"
+              style={{ color: '#00295d' }}
+            >
+              Create one
+            </Link>
+          </p>
         </form>
       </div>
     </div>
