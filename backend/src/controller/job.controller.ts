@@ -165,7 +165,7 @@ const getAllNCOCodes = asyncHandler(async (req: Request, res: Response): Promise
         sector, 
         skillLevel,
         search,
-        isActive = true
+        isActive = 'true' //currently string
     } = req.query;
 
     try {
@@ -478,7 +478,6 @@ const getRecommendedNCOCodes = asyncHandler(async (req: Request, res: Response):
         
         if (sector) whereClause.sector = sector;
         if (skillLevel) whereClause.skillLevel = skillLevel;
-
         const recommendedCodes = await prisma.nCOCode.findMany({
             where: whereClause,
             select: {
@@ -488,6 +487,8 @@ const getRecommendedNCOCodes = asyncHandler(async (req: Request, res: Response):
                 description: true,
                 sector: true,
                 skillLevel: true,
+                keywords: true,
+                synonyms: true,
                 _count: {
                     select: {
                         searchResults: true
@@ -496,6 +497,7 @@ const getRecommendedNCOCodes = asyncHandler(async (req: Request, res: Response):
             },
             orderBy: [
                 { searchResults: { _count: 'desc' } },
+                { isVerified: 'desc' },
                 { title: 'asc' }
             ],
             take: Number(limit)
@@ -522,5 +524,5 @@ export {
     submitSearchFeedback,
     markResultViewed,
     getPopularSearches,
-    getRecommendedNCOCodes
+    getRecommendedNCOCodes,
 };
