@@ -64,3 +64,4 @@ jobs:
           app-name: 'dataModelApp'   # Your Azure App name here
           slot-name: 'Production'
           package: 'dataModel'
+
