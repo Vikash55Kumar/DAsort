@@ -38,20 +38,51 @@ const getSearchTrends = asyncHandler(async (req: Request, res: Response): Promis
         if (language) whereClause.language = language;
         if (region) whereClause.user = { region };
 
-        // Daily search counts
-        const dailyStats = await prisma.$queryRaw`
-            SELECT 
-                DATE(searched_at) as date,
-                COUNT(*) as total_searches,
-                COUNT(DISTINCT user_id) as unique_users,
-                AVG(processing_time) as avg_processing_time,
-                AVG(total_results) as avg_results
-            FROM search_history 
-            WHERE searched_at >= ${startDate}
-            ${language ? `AND language = ${language}` : ''}
-            GROUP BY DATE(searched_at)
-            ORDER BY date DESC
-        `;
+        // Daily search counts - Use Prisma groupBy instead of raw SQL
+        const searchHistoryData = await prisma.searchHistory.findMany({
+            where: whereClause,
+            select: {
+                searchedAt: true,
+                userId: true,
+                processingTime: true,
+                totalResults: true
+            }
+        });
+
+        // Group by date manually
+        const dailyStatsMap = new Map();
+        searchHistoryData.forEach(record => {
+            const date = record.searchedAt.toISOString().split('T')[0]; // Get YYYY-MM-DD
+            
+            if (!dailyStatsMap.has(date)) {
+                dailyStatsMap.set(date, {
+                    date,
+                    total_searches: 0,
+                    unique_users: new Set(),
+                    processing_times: [],
+                    total_results: []
+                });
+            }
+            
+            const dayStats = dailyStatsMap.get(date);
+            dayStats.total_searches++;
+            dayStats.unique_users.add(record.userId);
+            if (record.processingTime) dayStats.processing_times.push(record.processingTime);
+            if (record.totalResults) dayStats.total_results.push(record.totalResults);
+        });
+
+        // Convert to final format
+        const dailyStats = Array.from(dailyStatsMap.values()).map(day => ({
+            date: day.date,
+            total_searches: day.total_searches,
+            unique_users: day.unique_users.size,
+            avg_processing_time: day.processing_times.length > 0 
+                ? day.processing_times.reduce((a: number, b: number) => a + b, 0) / day.processing_times.length 
+                : 0,
+            avg_results: day.total_results.length > 0 
+                ? day.total_results.reduce((a: number, b: number) => a + b, 0) / day.total_results.length 
+                : 0
+        })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         // Top search queries
         const topQueries = await prisma.searchHistory.groupBy({
