@@ -47,8 +47,7 @@ const Navbar: React.FC = () => {
     { name: 'About', href: '/about', public: true },
     { name: 'Contact', href: '/contact', public: true },
     ...(isAuthenticated ? [
-      { name: 'Dashboard', href: '/dashboard', public: false },
-      ...(user?.role === 'ADMIN' ? [{ name: 'Admin', href: '/admin', icon: Cog6ToothIcon, public: false }] : []),
+      ...(user?.role === 'ADMIN' ? [{ name: 'Admin Dashboard', href: '/admin', icon: Cog6ToothIcon, public: false }] : [{ name: 'User Dashboard', href: '/dashboard', icon: Cog6ToothIcon, public: false }]),
     ] : [])
   ], [isAuthenticated, user?.role]);
 
@@ -129,6 +128,22 @@ const Navbar: React.FC = () => {
 
                     {/* Menu Items */}
                     <div className="py-2">
+                      {user?.role === 'ADMIN' && (
+                        <Link
+                          to="/admin"
+                          className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                        >
+                          <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg mr-3 group-hover:bg-purple-200 transition-colors">
+                            <Cog6ToothIcon className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium">Admin Panel</div>
+                            <div className="text-xs text-gray-500">System administration</div>
+                          </div>
+                        </Link>
+                      )}
+                      
                       <Link
                         to="/user-reports"
                         className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group"

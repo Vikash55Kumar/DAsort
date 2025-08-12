@@ -1,16 +1,14 @@
 import React from 'react';
 import { useAppSelector } from '../../hooks/redux';
 import UserDashboard from './userDashboard/UserDashboard';
-// import AdminDashboard from './adminDashboard/AdminDashboard'; // TODO: Create admin dashboard
+import AdminDashboard from './adminDashboard/AdminDashboard';
 
 const Dashboard: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
 
-  // For now, show UserDashboard for all users
-  // Later we'll add AdminDashboard for ADMIN role
+  // Show AdminDashboard for ADMIN role, UserDashboard for others
   if (user?.role === 'ADMIN') {
-    // TODO: Implement AdminDashboard
-    return <UserDashboard />;
+    return <AdminDashboard />;
   }
 
   return <UserDashboard />;

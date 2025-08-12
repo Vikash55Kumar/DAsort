@@ -11,12 +11,13 @@ import {
     getAuditLogs,
     getAPIRequests
 } from "../controller/admin.controller";
+import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
 // Dashboard and statistics
-router.get("/dashboard", getDashboardStats);
-router.get("/analytics", getAnalytics);
+router.get("/dashboard", authenticate, getDashboardStats);
+router.get("/analytics",authenticate, getAnalytics);
 
 // NCO Code management
 router.post("/nco-codes", createNCOCode);
@@ -29,7 +30,7 @@ router.get("/system-config", getSystemConfigs);
 router.put("/system-config", updateSystemConfig);
 
 // Audit and monitoring
-router.get("/audit-logs", getAuditLogs);
-router.get("/api-requests", getAPIRequests);
+router.get("/audit-logs", authenticate, getAuditLogs);
+router.get("/api-requests", authenticate, getAPIRequests);
 
 export default router;
