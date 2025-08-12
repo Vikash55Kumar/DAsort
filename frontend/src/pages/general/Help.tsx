@@ -88,29 +88,33 @@ const Help: React.FC = () => {
 
   return (
     <div className="bg-white py-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Help & Documentation</h1>
-          <p className="text-lg text-gray-600">
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold text-[#00295d] mb-4">Help & Documentation</h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Everything you need to know about using the NCO AI Classification system.
           </p>
         </div>
 
         {/* Quick Start Guides */}
         <section className="mb-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Quick Start Guides</h2>
+          <h2 className="text-2xl font-bold text-[#00295d] mb-8">Quick Start Guides</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {quickGuides.map((guide, index) => (
-              <div key={index} className="bg-blue-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-4">{guide.title}</h3>
+              <div 
+                key={index} 
+                className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300"
+              >
+                <h3 className="text-lg font-semibold text-[#00295d] mb-4">{guide.title}</h3>
                 <ol className="space-y-2">
                   {guide.steps.map((step, stepIndex) => (
                     <li key={stepIndex} className="flex items-start">
-                      <span className="bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                      <span className="bg-[#00295d] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
                         {stepIndex + 1}
                       </span>
-                      <span className="text-blue-800 text-sm">{step}</span>
+                      <span className="text-gray-700 text-sm">{step}</span>
                     </li>
                   ))}
                 </ol>
@@ -121,43 +125,22 @@ const Help: React.FC = () => {
 
         {/* Feature Overview */}
         <section className="mb-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Feature Overview</h2>
+          <h2 className="text-2xl font-bold text-[#00295d] mb-8">Feature Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              {
-                icon: "🔍",
-                title: "Semantic Search",
-                description: "AI-powered job classification with natural language understanding and confidence scoring."
-              },
-              {
-                icon: "📊",
-                title: "Data Analytics",
-                description: "Comprehensive dashboards with real-time insights, trends, and performance metrics."
-              },
-              {
-                icon: "🧹",
-                title: "Data Cleaning",
-                description: "Automated anomaly detection, duplicate removal, and data validation processes."
-              },
-              {
-                icon: "🌐",
-                title: "Multi-language",
-                description: "Support for Hindi and regional languages with automatic translation capabilities."
-              },
-              {
-                icon: "👥",
-                title: "Role Management",
-                description: "Different access levels for enumerators, analysts, and administrators."
-              },
-              {
-                icon: "🔒",
-                title: "Security",
-                description: "Government-grade security with encryption, audit trails, and access controls."
-              }
+              { icon: "🔍", title: "Semantic Search", description: "AI-powered job classification with natural language understanding and confidence scoring." },
+              { icon: "📊", title: "Data Analytics", description: "Comprehensive dashboards with real-time insights, trends, and performance metrics." },
+              { icon: "🧹", title: "Data Cleaning", description: "Automated anomaly detection, duplicate removal, and data validation processes." },
+              { icon: "🌐", title: "Multi-language", description: "Support for Hindi and regional languages with automatic translation capabilities." },
+              { icon: "👥", title: "Role Management", description: "Different access levels for enumerators, analysts, and administrators." },
+              { icon: "🔒", title: "Security", description: "Government-grade security with encryption, audit trails, and access controls." }
             ].map((feature, index) => (
-              <div key={index} className="text-center p-4">
+              <div 
+                key={index} 
+                className="text-center p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300"
+              >
                 <div className="text-3xl mb-3">{feature.icon}</div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <h3 className="text-lg font-semibold text-[#00295d] mb-2">{feature.title}</h3>
                 <p className="text-gray-600 text-sm">{feature.description}</p>
               </div>
             ))}
@@ -166,17 +149,17 @@ const Help: React.FC = () => {
 
         {/* FAQ Section */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Frequently Asked Questions</h2>
+          <h2 className="text-2xl font-bold text-[#00295d] mb-8">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {faqs.map((faq, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg">
+              <div key={index} className="border border-gray-200 rounded-lg shadow-sm">
                 <button
-                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
+                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 focus:outline-none"
                   onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
                 >
                   <span className="font-medium text-gray-900">{faq.question}</span>
                   <ChevronDownIcon 
-                    className={`h-5 w-5 text-gray-500 transform transition-transform ${
+                    className={`h-5 w-5 text-gray-500 transform transition-transform duration-300 ${
                       openFAQ === index ? 'rotate-180' : ''
                     }`}
                   />
@@ -192,15 +175,15 @@ const Help: React.FC = () => {
         </section>
 
         {/* Contact Support */}
-        <section className="mt-16 bg-gray-50 rounded-lg p-8 text-center">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Still need help?</h3>
+        <section className="mt-16 bg-gray-50 rounded-lg p-8 text-center border border-gray-200 shadow-sm">
+          <h3 className="text-xl font-semibold text-[#00295d] mb-4">Still need help?</h3>
           <p className="text-gray-600 mb-6">
             Our support team is ready to assist you with any questions or technical issues.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/contact"
-              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-md text-white bg-[#00295d] hover:bg-[#003b85] transition-colors"
             >
               Contact Support
             </a>
@@ -212,6 +195,7 @@ const Help: React.FC = () => {
             </a>
           </div>
         </section>
+
       </div>
     </div>
   );
