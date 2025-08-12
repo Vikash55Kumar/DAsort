@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { registerAsync, clearError } from '../../store/slices/authSlice';
-import { validateEmail, validatePassword, validateRequired } from '../../utils/validators';
+import { validateEmail, validateRequired } from '../../utils/validators';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 
