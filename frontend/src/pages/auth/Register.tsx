@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { registerAsync, clearError } from '../../store/slices/authSlice';
@@ -22,12 +22,11 @@ const Register: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard'); // Redirect to dashboard if already authenticated
+      navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    // Clear any previous errors when component mounts
     if (error) {
       dispatch(clearError());
     }
@@ -36,7 +35,6 @@ const Register: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -70,9 +68,7 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-
     try {
       await dispatch(registerAsync({
         name: formData.name,
@@ -81,36 +77,44 @@ const Register: React.FC = () => {
         role: formData.role,
       })).unwrap();
       navigate('/dashboard');
-    } catch (error) {
+    } catch {
       setErrors({ general: 'Registration failed. Please try again.' });
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-            <span className="text-2xl">📝</span>
+    <div
+      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+      style={{
+        backgroundColor: '#f4f6f9',
+        fontFamily: '"Noto Sans", "Segoe UI", Arial, sans-serif',
+      }}
+    >
+      <div className="max-w-md w-full bg-white border border-gray-200 shadow-lg rounded-sm p-8">
+        {/* Header */}
+        <div className="flex flex-col items-center">
+          <div
+            className="flex items-center justify-center h-14 w-14 rounded-full"
+            style={{ backgroundColor: '#00295d' }}
+          >
+            <span className="text-white text-xl">📝</span>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+          <h2 className="mt-4 text-xl font-semibold text-[#00295d] tracking-wide">
+            Government of India – NCO Portal
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to existing account
-            </Link>
+          <p className="mt-1 text-sm text-gray-600">
+            Create your account to get started
           </p>
         </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+
+        {/* Form */}
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
           {errors.general && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-sm text-sm">
               {errors.general}
             </div>
           )}
-          
+
           <div className="space-y-4">
             <Input
               label="Full Name"
@@ -122,7 +126,7 @@ const Register: React.FC = () => {
               placeholder="Enter your full name"
               required
             />
-            
+
             <Input
               label="Email address"
               type="email"
@@ -134,6 +138,7 @@ const Register: React.FC = () => {
               required
             />
 
+            {/* Role Select */}
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
                 Role
@@ -143,14 +148,14 @@ const Register: React.FC = () => {
                 name="role"
                 value={formData.role}
                 onChange={handleInputChange}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-[#00295d] focus:border-[#00295d] text-sm"
               >
                 <option value="enumerator">Enumerator</option>
                 <option value="data_analyst">Data Analyst</option>
                 <option value="admin">Administrator</option>
               </select>
             </div>
-            
+
             <Input
               label="Password"
               type="password"
@@ -162,7 +167,7 @@ const Register: React.FC = () => {
               helperText="At least 8 characters with uppercase, lowercase, and number"
               required
             />
-            
+
             <Input
               label="Confirm Password"
               type="password"
@@ -178,11 +183,22 @@ const Register: React.FC = () => {
           <Button
             type="submit"
             loading={loading}
-            className="w-full"
+            className="w-full bg-[#00295d] hover:bg-[#01408f] text-white font-medium"
             size="lg"
           >
             Create Account
           </Button>
+
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              className="font-medium"
+              style={{ color: '#00295d' }}
+            >
+              Sign in
+            </Link>
+          </p>
         </form>
       </div>
     </div>
