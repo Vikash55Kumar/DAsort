@@ -4,3 +4,6 @@ torch
 transformers
 scikit-learn
 numpy
+gunicorn
+faiss
+gunicorn
