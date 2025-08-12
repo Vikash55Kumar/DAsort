@@ -43,99 +43,116 @@ const Navbar: React.FC = () => {
 
   const isActivePath = (path: string) => location.pathname === path;
 
+  const navStyle = "px-2 py-1 text-xs font-medium tracking-wide transition-colors duration-150";
+
+  // ======= PUBLIC NAVBAR =======
   if (!isAuthenticated) {
     return (
-      <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center">
-                <div className="flex-shrink-0">
-                  <span className="text-2xl font-bold text-blue-600">NCO AI</span>
-                </div>
-              </Link>
-            </div>
+      <nav
+        className="bg-[#00295d] border-b border-black"
+        style={{ fontFamily: '"Noto Sans", "Segoe UI", Arial, sans-serif', height: '48px' }}
+      >
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-full">
+          
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <span className="text-lg font-semibold text-white tracking-wide">
+              NCO AI Portal
+            </span>
+          </Link>
 
-            <div className="hidden md:flex items-center space-x-8">
-              {publicNavItems.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`${
-                    isActivePath(item.href)
-                      ? 'text-blue-600 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  } px-3 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 transition-colors`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </div>
+          {/* Right-side navigation */}
+          <div className="flex items-center space-x-4">
+            {publicNavItems.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`${navStyle} ${
+                  isActivePath(item.href)
+                    ? 'text-white border-b-2 border-white'
+                    : 'text-gray-200 hover:text-white hover:border-white'
+                } border-b-2 border-transparent`}
+              >
+                {item.name}
+              </Link>
+            ))}
 
-            <div className="flex items-center space-x-4">
-              <Link to="/login">
-                <Button variant="ghost" size="sm">
-                  Login
-                </Button>
-              </Link>
-              <Link to="/register">
-                <Button variant="primary" size="sm">
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
+            {/* Buttons */}
+            <Link to="/login">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white border border-white hover:bg-white hover:text-[#00295d] text-xs py-1 px-2"
+              >
+                Login
+              </Button>
+            </Link>
+            <Link to="/register">
+              <Button
+                variant="primary"
+                size="sm"
+                className="bg-white text-[#00295d] hover:bg-gray-100 text-xs py-1 px-2"
+              >
+                Sign Up
+              </Button>
+            </Link>
           </div>
         </div>
       </nav>
     );
   }
 
+  // ======= PRIVATE NAVBAR =======
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/dashboard" className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="text-2xl font-bold text-blue-600">NCO AI</span>
-              </div>
-            </Link>
+    <nav
+      className="bg-[#00295d] border-b border-black"
+      style={{ fontFamily: '"Noto Sans", "Segoe UI", Arial, sans-serif', height: '48px' }}
+    >
+      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-full">
+
+        {/* Logo */}
+        <Link to="/dashboard" className="flex items-center">
+          <span className="text-lg font-semibold text-white tracking-wide">
+            NCO AI Portal
+          </span>
+        </Link>
+
+        {/* Private Links + User Info */}
+        <div className="flex items-center space-x-3">
+          {privateNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`${navStyle} flex items-center rounded-sm ${
+                  isActivePath(item.href)
+                    ? 'bg-white text-[#00295d]'
+                    : 'text-gray-200 hover:text-white hover:bg-[#003b85]'
+                }`}
+              >
+                <Icon className="h-3 w-3 mr-1" />
+                {item.name}
+              </Link>
+            );
+          })}
+
+          {/* User Info */}
+          <div className="flex items-center space-x-1 text-white text-xs">
+            <UserIcon className="h-4 w-4 text-gray-300" />
+            <span>{user?.name}</span>
           </div>
 
-          <div className="hidden md:flex items-center space-x-1">
-            {privateNavItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`${
-                    isActivePath(item.href)
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  } px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors`}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <UserIcon className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-700">{user?.name}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              icon={<ArrowRightOnRectangleIcon className="h-4 w-4" />}
-            >
-              Logout
-            </Button>
-          </div>
+          {/* Logout */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="text-white hover:bg-white hover:text-[#00295d] text-xs py-1 px-2"
+            icon={<ArrowRightOnRectangleIcon className="h-3 w-3" />}
+          >
+            Logout
+          </Button>
         </div>
       </div>
     </nav>
