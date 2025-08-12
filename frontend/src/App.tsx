@@ -18,6 +18,8 @@ import Register from './pages/auth/Register';
 // Private Pages
 import Dashboard from './pages/dashboard/Dashboard';
 import JobSearch from './pages/dashboard/JobSearch';
+import UserReports from './pages/dashboard/userDashboard/UserReports';
+import SearchHistory from './pages/dashboard/userDashboard/SearchHistory';
 import HomePage from './pages/home/HomePage';
 import Navbar from './layouts/Navbar';
 import Footer from './layouts/Footer';
@@ -60,6 +62,8 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/job-search" element={<JobSearch />} />
+          <Route path="/user-reports" element={<UserReports />} />
+          <Route path="/search-history" element={<SearchHistory />} />
           <Route path="/active" element={<div>frontend active</div>} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

@@ -19,8 +19,21 @@ const JobSearch: React.FC = () => {
 
     setLoading(true);
     try {
-      const searchResults = await jobService.searchJobs(query, 10);
-      setResults(searchResults);
+      const searchResponse = await jobService.searchJobs(query, 10);
+      // Convert NCOSearchResult to SearchResult format
+      const convertedResults: SearchResult[] = searchResponse.results.map(result => ({
+        jobCode: {
+          id: result.id,
+          code: result.ncoCode,
+          title: result.title,
+          description: result.description,
+          hierarchy: [result.majorGroup, result.subMajorGroup, result.minorGroup],
+          confidenceScore: result.confidenceScore
+        },
+        confidenceScore: result.confidenceScore,
+        matchType: result.relevanceScore > 0.8 ? 'exact' : result.relevanceScore > 0.6 ? 'semantic' : 'partial' as 'exact' | 'semantic' | 'partial'
+      }));
+      setResults(convertedResults);
     } catch (error) {
       console.error('Search failed:', error);
       // Mock results for demo

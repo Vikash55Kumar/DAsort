@@ -24,8 +24,21 @@ const initialState: JobState = {
 export const searchJobsAsync = createAsyncThunk(
   'job/searchJobs',
   async ({ query, limit = 10 }: { query: string; limit?: number }) => {
-    const results = await jobService.searchJobs(query, limit);
-    return { results, query };
+    const response = await jobService.searchJobs(query, limit);
+    // Convert NCOSearchResult to SearchResult format
+    const convertedResults: SearchResult[] = response.results.map(result => ({
+      jobCode: {
+        id: result.id,
+        code: result.ncoCode,
+        title: result.title,
+        description: result.description,
+        hierarchy: [result.majorGroup, result.subMajorGroup, result.minorGroup],
+        confidenceScore: result.confidenceScore
+      },
+      confidenceScore: result.confidenceScore,
+      matchType: result.relevanceScore > 0.8 ? 'exact' : result.relevanceScore > 0.6 ? 'semantic' : 'partial' as 'exact' | 'semantic' | 'partial'
+    }));
+    return { results: convertedResults, query };
   }
 );
 

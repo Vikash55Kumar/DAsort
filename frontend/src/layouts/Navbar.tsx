@@ -5,7 +5,7 @@ import { logoutAsync } from '../store/slices/authSlice';
 import Button from '../components/common/Button';
 import {
   HomeIcon,
-  ChartBarIcon,
+  ClockIcon,
   MagnifyingGlassIcon,
   DocumentMagnifyingGlassIcon,
   DocumentCheckIcon,
@@ -34,10 +34,10 @@ const Navbar: React.FC = () => {
 
   const privateNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Data Explorer', href: '/data-explorer', icon: ChartBarIcon },
     { name: 'Job Search', href: '/job-search', icon: MagnifyingGlassIcon },
+    { name: 'Reports', href: '/user-reports', icon: DocumentMagnifyingGlassIcon },
+    { name: 'Search History', href: '/search-history', icon: ClockIcon },
     { name: 'Data Cleaning', href: '/data-cleaning', icon: DocumentCheckIcon },
-    { name: 'Reports', href: '/reports', icon: DocumentMagnifyingGlassIcon },
     ...(user?.role === 'ADMIN' ? [{ name: 'Admin', href: '/admin', icon: Cog6ToothIcon }] : []),
   ];
 
