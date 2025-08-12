@@ -5,5 +5,4 @@ transformers
 scikit-learn
 numpy
 gunicorn
-faiss
-gunicorn
+faiss-cpu
