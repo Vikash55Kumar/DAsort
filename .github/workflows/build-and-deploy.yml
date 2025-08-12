@@ -58,9 +58,10 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'dataModelApp'   # Your Azure App name here
+          app-name: 'dataTransformer' 
           slot-name: 'Production'
           package: 'dataModel'
+
 
 
 
