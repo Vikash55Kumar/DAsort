@@ -3,7 +3,6 @@ import {
     healthCheck,
     getSystemStatus,
     getPublicConfig,
-    getSearchSuggestions,
     validateNCOCode,
     getNCOHierarchy
 } from "../controller/utility.controller";
@@ -14,7 +13,6 @@ const router = Router();
 router.get("/health", healthCheck);
 router.get("/status", getSystemStatus);
 router.get("/config/public", getPublicConfig);
-router.get("/suggestions", getSearchSuggestions);
 router.get("/validate-nco/:code", validateNCOCode);
 router.get("/nco-hierarchy", getNCOHierarchy);
 

@@ -1,18 +1,17 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/redux';
 import { logoutAsync } from '../store/slices/authSlice';
-import Button from '../components/common/Button';
 import {
   HomeIcon,
-  ChartBarIcon,
-  MagnifyingGlassIcon,
+  ClockIcon,
   DocumentMagnifyingGlassIcon,
-  DocumentCheckIcon,
   Cog6ToothIcon,
-  UserIcon,
+  UserCircleIcon,
   ArrowRightOnRectangleIcon,
-} from '@heroicons/react/24/outline';
+  ArrowRightEndOnRectangleIcon,
+  ChevronDownIcon,
+} from '@heroicons/react/24/solid';
 import logo from '../assets/logo.png';
 
 const Navbar: React.FC = () => {
@@ -20,152 +19,181 @@ const Navbar: React.FC = () => {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const location = useLocation();
   const navigate = useNavigate();
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await dispatch(logoutAsync());
     navigate('/');
-  };
+  }, [dispatch, navigate]);
 
-  const publicNavItems = [
-    { name: 'Home', href: '/' },
-    { name: 'About', href: '/about' },
-    { name: 'Contact', href: '/contact' },
-    { name: 'Help', href: '/help' },
-  ];
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
 
-  const privateNavItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Data Explorer', href: '/data-explorer', icon: ChartBarIcon },
-    { name: 'Job Search', href: '/job-search', icon: MagnifyingGlassIcon },
-    { name: 'Data Cleaning', href: '/data-cleaning', icon: DocumentCheckIcon },
-    { name: 'Reports', href: '/reports', icon: DocumentMagnifyingGlassIcon },
-    ...(user?.role === 'admin' ? [{ name: 'Admin', href: '/admin', icon: Cog6ToothIcon }] : []),
-  ];
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
-  const isActivePath = (path: string) => location.pathname === path;
 
-  const navStyle =
-    'px-4 py-3 text-base font-medium tracking-wide transition-colors duration-150';
+  const navigationItems = useMemo(() => [
+    { name: 'Home', href: '/', icon: HomeIcon, public: true },
+    { name: 'About', href: '/about', public: true },
+    { name: 'Contact', href: '/contact', public: true },
+    ...(isAuthenticated ? [
+      { name: 'Dashboard', href: '/dashboard', public: false },
+      ...(user?.role === 'ADMIN' ? [{ name: 'Admin', href: '/admin', icon: Cog6ToothIcon, public: false }] : []),
+    ] : [])
+  ], [isAuthenticated, user?.role]);
 
-  // ======= PUBLIC NAVBAR =======
-  if (!isAuthenticated) {
-    return (
-      <nav
-        className="bg-[#00295d] border-b border-black"
-        style={{
-          fontFamily: '"Noto Sans", "Segoe UI", Arial, sans-serif',
-          height: '72px', // Increased from 56px
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-full">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <img
-              src={logo}
-              alt="DAsort"
-              className="h-12 w-24 mr-2"
-            />
-          </Link>
+  const isActivePath = useCallback((path: string) => location.pathname === path, [location.pathname]);
 
-          {/* Right-side navigation */}
-          <div className="flex items-center space-x-6">
-            {publicNavItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`${navStyle} ${
-                  isActivePath(item.href)
-                    ? 'text-white border-b-2 border-[#ecf0f3]'
-                    : 'text-gray-200 hover:text-white hover:border-[#ecf0f3]'
-                } border-b-2 border-transparent`}
-              >
-                {item.name}
-              </Link>
-            ))}
+  // Memoize styles to prevent recreating objects
+  const navbarStyle = useMemo(() => ({
+    height: '72px',
+  }), []);
 
-            {/* Buttons */}
-            <Link to="/login">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white border border-white hover:bg-[#ecf0f3] hover:text-[#00295d] text-base py-2 px-4"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button
-                variant="primary"
-                size="sm"
-                className="bg-[#ecf0f3] text-[#00295d] hover:bg-[#338ed4] text-base py-2 px-4 font-medium"
-              >
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-    );
-  }
-
-  // ======= PRIVATE NAVBAR =======
   return (
-    <nav
-      className="bg-[#00295d] border-b border-black"
-      style={{
-        fontFamily: '"Noto Sans", "Segoe UI", Arial, sans-serif',
-        height: '72px', // Increased from 56px
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-full">
+    <nav className="bg-[#00295d] border-b border-black fixed top-0 left-0 right-0 z-50" style={navbarStyle}>
+      <div className="w-full mx-auto px-4 flex justify-between items-center h-full">
         {/* Logo */}
-        <Link to="/dashboard" className="flex items-center">
+        <Link to="/" className="flex items-center">
           <img
             src={logo}
-            alt="NCO AI Portal"
-            className="h-10 w-10 mr-2"
+            alt="DAsort"
+            className="h-18 w-36 p-2"
           />
-          <span className="text-2xl font-semibold text-white tracking-wide">
-            NCO AI Portal
-          </span>
         </Link>
 
-        {/* Private Links + User Info */}
-        <div className="flex items-center space-x-5">
-          {privateNavItems.map((item) => {
+        {/* Center Navigation */}
+        <div className="flex items-center space-x-6">
+          {navigationItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`${navStyle} flex items-center rounded-sm ${
+                className={`flex items-center px-4 py-3 text-base font-medium transition-colors duration-150 ${
                   isActivePath(item.href)
-                    ? 'bg-[#ecf0f3] text-[#00295d]'
-                    : 'text-gray-200 hover:text-white hover:bg-[#003b85]'
+                    ? 'border-b-2 border-white text-white'
+                    : 'text-white'
                 }`}
               >
-                <Icon className="h-5 w-5 mr-2" />
+                {Icon && <Icon className="h-5 w-5 mr-2" />}
                 {item.name}
               </Link>
             );
           })}
+        </div>
 
-          {/* User Info */}
-          <div className="flex items-center space-x-2 text-white text-base">
-            <UserIcon className="h-6 w-6 text-gray-300" />
-            <span>{user?.name}</span>
-          </div>
+        {/* Right Side - Auth Section */}
+        <div className="flex items-center space-x-4">
+          {isAuthenticated ? (
+            <>
+              {/* User Dropdown */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                  className="flex items-center space-x-3 text-white hover:bg-[#003b85] px-4 py-2 rounded-lg transition-all duration-200 group"
+                >
+                  <div className="flex items-center space-x-2">
+                    <UserCircleIcon className="h-8 w-8 text-gray-300 group-hover:text-white transition-colors" />
+                    <div className="text-left">
+                      <div className="text-sm font-medium">{user?.name}</div>
+                      <div className="text-xs text-gray-300">{user?.email}</div>
+                    </div>
+                  </div>
+                  <ChevronDownIcon className={`h-4 w-4 text-gray-300 transition-all duration-200 ${isUserDropdownOpen ? 'rotate-180 text-white' : 'group-hover:text-white'}`} />
+                </button>
 
-          {/* Logout */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-white hover:bg-[#c9e7fe] hover:text-[#00295d] text-base py-2 px-4"
-            icon={<ArrowRightOnRectangleIcon className="h-5 w-5" />}
-          >
-            Logout
-          </Button>
+                {/* Dropdown Menu */}
+                {isUserDropdownOpen && (
+                  <div className="absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+                    {/* User Info Header */}
+                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                      <div className="flex items-center space-x-3">
+                        <UserCircleIcon className="h-10 w-10 text-gray-400" />
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">{user?.name}</div>
+                          <div className="text-xs text-gray-500">{user?.email}</div>
+                          <div className="text-xs text-blue-600 font-medium">{user?.role}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-2">
+                      <Link
+                        to="/user-reports"
+                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg mr-3 group-hover:bg-blue-200 transition-colors">
+                          <DocumentMagnifyingGlassIcon className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Reports</div>
+                          <div className="text-xs text-gray-500">View analytics & reports</div>
+                        </div>
+                      </Link>
+                      
+                      <Link
+                        to="/search-history"
+                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all duration-150 group"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg mr-3 group-hover:bg-green-200 transition-colors">
+                          <ClockIcon className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Search History</div>
+                          <div className="text-xs text-gray-500">View past searches</div>
+                        </div>
+                      </Link>
+                    </div>
+
+                    {/* Logout Section */}
+                    <div className="border-t border-gray-200">
+                      <button
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all duration-150 group"
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-lg mr-3 group-hover:bg-red-200 transition-colors">
+                          <ArrowRightOnRectangleIcon className="h-4 w-4 text-red-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Sign Out</div>
+                          <div className="text-xs text-gray-500">Logout from account</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Creative Login/Signup Buttons */}
+              <Link to="/login">
+                <button className="group relative flex items-center space-x-3 px-5 py-3 bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg overflow-hidden">
+                    <ArrowRightEndOnRectangleIcon className="h-5 w-5 text-white" />
+                  <div className="text-left">
+                    <div className="text-sm font-bold tracking-wide">Sign In</div>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

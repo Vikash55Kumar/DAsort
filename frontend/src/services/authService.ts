@@ -1,19 +1,19 @@
-import axios from 'axios';
 import type { User } from '../types';
+import api from '../utils/baseApi';
 
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-});
+// const api = axios.create({
+//   baseURL: import.meta.env.VITE_API_BASE_URL,
+// });
 
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// // Add auth token to requests
+// api.interceptors.request.use((config) => {
+//   const token = localStorage.getItem('token');
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// });
 
 interface LoginResponse {
   user: User;
