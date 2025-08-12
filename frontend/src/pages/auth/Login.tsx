@@ -57,7 +57,8 @@ const Login: React.FC = () => {
     e.preventDefault();
     if (!validateForm()) return;
     try {
-      await dispatch(loginAsync(formData)).unwrap();
+      const data = await dispatch(loginAsync(formData)).unwrap();
+      console.log('Login successful:', data);
       navigate('/dashboard');
     } catch {
       setErrors({ general: 'Invalid email or password' });
@@ -67,33 +68,35 @@ const Login: React.FC = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
-      style={{
-        backgroundColor: '#f4f6f9', // light government portal gray
-        fontFamily: '"Noto Sans", "Segoe UI", Arial, sans-serif',
-      }}
+
     >
-      <div className="max-w-md w-full bg-white border border-gray-200 shadow-lg rounded-sm p-8">
+      <div className="max-w-lg w-full bg-white/95 backdrop-blur-sm border border-white/20 shadow-2xl rounded-xl p-8">
         {/* Logo & Title */}
         <div className="flex flex-col items-center">
           <div
-            className="flex items-center justify-center h-14 w-14 rounded-full"
-            style={{ backgroundColor: '#00295d' }}
+            className="flex items-center justify-center h-16 w-16 rounded-full shadow-lg"
+            style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            }}
           >
-            <span className="text-white text-xl">🔐</span>
+            <span className="text-white text-2xl">🏛️</span>
           </div>
-          <h2 className="mt-4 text-xl font-semibold text-[#00295d] tracking-wide">
-            Government of India – NCO Portal
+          <h2 className="mt-4 text-2xl font-bold text-gray-800 tracking-wide">
+            NCO Classification Portal
           </h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-md font-bold text-gray-500">
             Please sign in to continue
           </p>
         </div>
 
         {/* Form */}
-        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {errors.general && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-sm text-sm">
-              {errors.general}
+            <div className="bg-red-50 border-l-4 border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm shadow-sm">
+              <div className="flex items-center">
+                <span className="mr-2">⚠️</span>
+                {errors.general}
+              </div>
             </div>
           )}
 

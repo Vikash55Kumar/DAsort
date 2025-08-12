@@ -39,9 +39,7 @@ const Navbar: React.FC = () => {
     { name: 'Job Search', href: '/job-search', icon: MagnifyingGlassIcon },
     { name: 'Data Cleaning', href: '/data-cleaning', icon: DocumentCheckIcon },
     { name: 'Reports', href: '/reports', icon: DocumentMagnifyingGlassIcon },
-    ...(user?.role === 'admin'
-      ? [{ name: 'Admin', href: '/admin', icon: Cog6ToothIcon }]
-      : []),
+    ...(user?.role === 'admin' ? [{ name: 'Admin', href: '/admin', icon: Cog6ToothIcon }] : []),
   ];
 
   const isActivePath = (path: string) => location.pathname === path;
