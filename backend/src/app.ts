@@ -7,6 +7,7 @@ import datasetRouter from "./router/dataset.router";
 import adminRouter from "./router/admin.router";
 import analyticsRouter from "./router/analytics.router";
 import utilityRouter from "./router/utility.router";
+import AuditLogger from "./utility/auditLogger";
 import path from "path";
 const app = express();
 
@@ -23,6 +24,9 @@ app.use(cors({
 app.use(express.json());
 // Add URL encoded body parser middleware
 app.use(express.urlencoded({ extended: true }));
+
+// Add audit logging middleware for API requests
+app.use('/api', AuditLogger.middleware());
 
 
 // API routes - must come before static file serving

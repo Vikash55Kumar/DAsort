@@ -25,7 +25,7 @@ router.get("/search-history", authenticate, getUserSearchHistory);
 router.put("/change-password", authenticate, changePassword);
 
 // Admin routes (require admin role)
-router.get("/get-allUsers", getAllUsers);
+router.get("/get-allUsers", authenticate, requireAdmin, getAllUsers);
 router.put("/:userId/role", authenticate, requireAdmin, updateUserRole);
 router.delete("/:userId", authenticate, requireAdmin, deleteUser);
 
