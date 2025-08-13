@@ -128,7 +128,7 @@ const Navbar: React.FC = () => {
 
                     {/* Menu Items */}
                     <div className="py-2">
-                      {user?.role === 'ADMIN' && (
+                      {user?.role === 'ADMIN' ? (
                         <Link
                           to="/admin"
                           className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group"
@@ -142,35 +142,37 @@ const Navbar: React.FC = () => {
                             <div className="text-xs text-gray-500">System administration</div>
                           </div>
                         </Link>
+                      ) : (
+                        <>
+                          <Link
+                            to="/user-reports"
+                            className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                          >
+                            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg mr-3 group-hover:bg-blue-200 transition-colors">
+                              <DocumentMagnifyingGlassIcon className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium">Reports</div>
+                              <div className="text-xs text-gray-500">View analytics & reports</div>
+                            </div>
+                          </Link>
+                          
+                          <Link
+                            to="/search-history"
+                            className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                          >
+                            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg mr-3 group-hover:bg-blue-200 transition-colors">
+                              <ClockIcon className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium">Search History</div>
+                              <div className="text-xs text-gray-500">View past searches</div>
+                            </div>
+                          </Link>
+                        </>
                       )}
-                      
-                      <Link
-                        to="/user-reports"
-                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group"
-                        onClick={() => setIsUserDropdownOpen(false)}
-                      >
-                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg mr-3 group-hover:bg-blue-200 transition-colors">
-                          <DocumentMagnifyingGlassIcon className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Reports</div>
-                          <div className="text-xs text-gray-500">View analytics & reports</div>
-                        </div>
-                      </Link>
-                      
-                      <Link
-                        to="/search-history"
-                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 group"
-                        onClick={() => setIsUserDropdownOpen(false)}
-                      >
-                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg mr-3 group-hover:bg-blue-200 transition-colors">
-                          <ClockIcon className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Search History</div>
-                          <div className="text-xs text-gray-500">View past searches</div>
-                        </div>
-                      </Link>
                     </div>
 
                     {/* Logout Section */}
