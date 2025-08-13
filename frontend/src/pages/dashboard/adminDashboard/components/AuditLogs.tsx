@@ -1,197 +1,99 @@
 import React, { useState, useEffect } from 'react';
 import {
   ClockIcon,
+  MagnifyingGlassIcon,
+  CalendarDaysIcon,
+  ShieldCheckIcon,
   UserIcon,
   CogIcon,
   DocumentTextIcon,
-  ShieldCheckIcon,
-  ExclamationTriangleIcon,
-  EyeIcon,
-  MagnifyingGlassIcon,
-  CalendarDaysIcon
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-
-interface AuditLog {
-  id: string;
-  timestamp: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  action: string;
-  resource: string;
-  resourceId?: string;
-  oldValue?: any;
-  newValue?: any;
-  ipAddress: string;
-  userAgent: string;
-  sessionId: string;
-  status: 'SUCCESS' | 'FAILED' | 'WARNING';
-  details?: string;
-  category: 'AUTH' | 'USER_MGMT' | 'SYSTEM_CONFIG' | 'DATA_ACCESS' | 'ADMIN' | 'SECURITY';
-}
+import { adminService, type AuditLog } from '../../../../services/adminService';
 
 const AuditLogs: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [actionFilter, setActionFilter] = useState<string>('ALL');
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>('ALL');
+  const [successFilter, setSuccessFilter] = useState<string>('ALL');
   const [dateFilter, setDateFilter] = useState<string>('');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
 
   useEffect(() => {
     fetchAuditLogs();
-  }, []);
+  }, [pagination.page, pagination.limit, actionFilter, resourceTypeFilter, successFilter, dateFilter]);
 
   const fetchAuditLogs = async () => {
     try {
-      // TODO: Replace with actual API call
-      const mockLogs: AuditLog[] = [
-        {
-          id: '1',
-          timestamp: '2024-01-21T14:30:00Z',
-          userId: 'admin1',
-          userName: 'System Admin',
-          userEmail: 'admin@example.com',
-          action: 'UPDATE_USER',
-          resource: 'User',
-          resourceId: 'user123',
-          oldValue: { role: 'USER' },
-          newValue: { role: 'ADMIN' },
-          ipAddress: '192.168.1.100',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          sessionId: 'sess_abc123',
-          status: 'SUCCESS',
-          details: 'User role updated from USER to ADMIN',
-          category: 'USER_MGMT'
-        },
-        {
-          id: '2',
-          timestamp: '2024-01-21T14:15:00Z',
-          userId: 'admin1',
-          userName: 'System Admin',
-          userEmail: 'admin@example.com',
-          action: 'LOGIN',
-          resource: 'Authentication',
-          ipAddress: '192.168.1.100',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          sessionId: 'sess_abc123',
-          status: 'SUCCESS',
-          details: 'Admin login successful',
-          category: 'AUTH'
-        },
-        {
-          id: '3',
-          timestamp: '2024-01-21T13:45:00Z',
-          userId: 'user456',
-          userName: 'John Doe',
-          userEmail: 'john@example.com',
-          action: 'SEARCH_NCO',
-          resource: 'NCO Code',
-          resourceId: 'search_789',
-          ipAddress: '192.168.1.50',
-          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-          sessionId: 'sess_def456',
-          status: 'SUCCESS',
-          details: 'Search query: "software developer" returned 5 results',
-          category: 'DATA_ACCESS'
-        },
-        {
-          id: '4',
-          timestamp: '2024-01-21T13:30:00Z',
-          userId: 'hacker1',
-          userName: 'Unknown',
-          userEmail: 'unknown@suspicious.com',
-          action: 'LOGIN',
-          resource: 'Authentication',
-          ipAddress: '10.0.0.1',
-          userAgent: 'curl/7.68.0',
-          sessionId: '',
-          status: 'FAILED',
-          details: 'Multiple failed login attempts detected',
-          category: 'SECURITY'
-        },
-        {
-          id: '5',
-          timestamp: '2024-01-21T12:20:00Z',
-          userId: 'admin1',
-          userName: 'System Admin',
-          userEmail: 'admin@example.com',
-          action: 'UPDATE_CONFIG',
-          resource: 'System Configuration',
-          resourceId: 'config_search_timeout',
-          oldValue: { timeout: 30 },
-          newValue: { timeout: 45 },
-          ipAddress: '192.168.1.100',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          sessionId: 'sess_abc123',
-          status: 'SUCCESS',
-          details: 'Search timeout configuration updated',
-          category: 'SYSTEM_CONFIG'
-        },
-        {
-          id: '6',
-          timestamp: '2024-01-21T11:55:00Z',
-          userId: 'admin2',
-          userName: 'Data Manager',
-          userEmail: 'data@example.com',
-          action: 'DELETE_DATASET',
-          resource: 'Dataset',
-          resourceId: 'dataset_old_2023',
-          ipAddress: '192.168.1.105',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          sessionId: 'sess_ghi789',
-          status: 'WARNING',
-          details: 'Old dataset deleted but referenced in active reports',
-          category: 'ADMIN'
-        }
-      ];
-      setAuditLogs(mockLogs);
+      setLoading(true);
+      setError(null);
+      
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+
+      if (actionFilter !== 'ALL') params.action = actionFilter;
+      if (resourceTypeFilter !== 'ALL') params.resourceType = resourceTypeFilter;
+      if (successFilter !== 'ALL') params.success = successFilter === 'SUCCESS';
+      if (dateFilter) {
+        params.startDate = dateFilter;
+        params.endDate = dateFilter;
+      }
+
+      const response = await adminService.getAuditLogs(params);
+      setAuditLogs(response.logs);
+      setPagination(response.pagination);
     } catch (error) {
       console.error('Failed to fetch audit logs:', error);
+      setError('Failed to load audit logs. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = ['ALL', 'AUTH', 'USER_MGMT', 'SYSTEM_CONFIG', 'DATA_ACCESS', 'ADMIN', 'SECURITY'];
-  const statuses = ['ALL', 'SUCCESS', 'FAILED', 'WARNING'];
+  const actions = ['ALL', 'LOGIN', 'LOGOUT', 'SEARCH', 'CREATE_USER', 'UPDATE_USER', 'DELETE_USER', 'CREATE_NCO', 'UPDATE_NCO', 'DELETE_NCO', 'UPLOAD_DATASET'];
+  const resourceTypes = ['ALL', 'user', 'nco_code', 'dataset', 'search', 'authentication', 'system'];
+  const statuses = ['ALL', 'SUCCESS', 'FAILED'];
 
   const filteredLogs = auditLogs.filter(log => {
     const matchesSearch = 
-      log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.resource.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.details?.toLowerCase().includes(searchTerm.toLowerCase());
+      log.resourceType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.errorMessage?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
-    const matchesCategory = categoryFilter === 'ALL' || log.category === categoryFilter;
-    const matchesStatus = statusFilter === 'ALL' || log.status === statusFilter;
-    const matchesDate = !dateFilter || 
-      new Date(log.timestamp).toISOString().split('T')[0] === dateFilter;
-    
-    return matchesSearch && matchesCategory && matchesStatus && matchesDate;
+    return matchesSearch;
   });
 
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'SUCCESS': return 'bg-green-100 text-green-800';
-      case 'FAILED': return 'bg-red-100 text-red-800';
-      case 'WARNING': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getStatusColor = (success: boolean): string => {
+    return success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+  };
+
+  const getResourceTypeIcon = (resourceType: string) => {
+    switch (resourceType.toLowerCase()) {
+      case 'user': return <UserIcon className="h-5 w-5" />;
+      case 'authentication': return <ShieldCheckIcon className="h-5 w-5" />;
+      case 'system': return <CogIcon className="h-5 w-5" />;
+      case 'nco_code': return <DocumentTextIcon className="h-5 w-5" />;
+      case 'dataset': return <DocumentTextIcon className="h-5 w-5" />;
+      case 'search': return <MagnifyingGlassIcon className="h-5 w-5" />;
+      default: return <ClockIcon className="h-5 w-5" />;
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'AUTH': return <ShieldCheckIcon className="h-5 w-5" />;
-      case 'USER_MGMT': return <UserIcon className="h-5 w-5" />;
-      case 'SYSTEM_CONFIG': return <CogIcon className="h-5 w-5" />;
-      case 'DATA_ACCESS': return <DocumentTextIcon className="h-5 w-5" />;
-      case 'ADMIN': return <ExclamationTriangleIcon className="h-5 w-5" />;
-      case 'SECURITY': return <ShieldCheckIcon className="h-5 w-5" />;
-      default: return <ClockIcon className="h-5 w-5" />;
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
   };
 
   const AuditLogDetailsModal: React.FC = () => {
@@ -217,98 +119,57 @@ const AuditLogs: React.FC = () => {
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Timestamp</label>
-                    <div className="text-sm text-gray-900">
-                      {new Date(selectedLog.timestamp).toLocaleString()}
+                    <label className="block text-sm font-medium text-gray-500">Action</label>
+                    <div className="mt-1 text-sm text-gray-900">{selectedLog.action}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Resource Type</label>
+                    <div className="mt-1 text-sm text-gray-900">{selectedLog.resourceType}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Resource ID</label>
+                    <div className="mt-1 text-sm text-gray-900">{selectedLog.resourceId || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Status</label>
+                    <div className="mt-1">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedLog.success)}`}>
+                        {selectedLog.success ? 'Success' : 'Failed'}
+                      </span>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Status</label>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedLog.status)}`}>
-                      {selectedLog.status}
-                    </span>
+                    <label className="block text-sm font-medium text-gray-500">Timestamp</label>
+                    <div className="mt-1 text-sm text-gray-900">{formatDate(selectedLog.createdAt)}</div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Action</label>
-                    <div className="text-sm text-gray-900">{selectedLog.action}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Category</label>
-                    <div className="flex items-center text-sm text-gray-900">
-                      {getCategoryIcon(selectedLog.category)}
-                      <span className="ml-2">{selectedLog.category}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* User Information */}
-            <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4">User Information</h4>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">User ID</label>
-                    <div className="text-sm text-gray-900">{selectedLog.userId}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
-                    <div className="text-sm text-gray-900">{selectedLog.userName}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <div className="text-sm text-gray-900">{selectedLog.userEmail}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Session ID</label>
-                    <div className="text-sm text-gray-900 font-mono">{selectedLog.sessionId || 'N/A'}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Resource Information */}
-            <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4">Resource Information</h4>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Resource Type</label>
-                    <div className="text-sm text-gray-900">{selectedLog.resource}</div>
-                  </div>
-                  {selectedLog.resourceId && (
+                  {selectedLog.duration && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Resource ID</label>
-                      <div className="text-sm text-gray-900 font-mono">{selectedLog.resourceId}</div>
+                      <label className="block text-sm font-medium text-gray-500">Duration</label>
+                      <div className="mt-1 text-sm text-gray-900">{selectedLog.duration}ms</div>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Changes */}
-            {(selectedLog.oldValue || selectedLog.newValue) && (
+            {/* User Information */}
+            {selectedLog.user && (
               <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Changes</h4>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">User Information</h4>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-4">
-                    {selectedLog.oldValue && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Old Value</label>
-                        <div className="text-sm text-gray-900 bg-white p-2 rounded border font-mono">
-                          {JSON.stringify(selectedLog.oldValue, null, 2)}
-                        </div>
-                      </div>
-                    )}
-                    {selectedLog.newValue && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">New Value</label>
-                        <div className="text-sm text-gray-900 bg-white p-2 rounded border font-mono">
-                          {JSON.stringify(selectedLog.newValue, null, 2)}
-                        </div>
-                      </div>
-                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Name</label>
+                      <div className="mt-1 text-sm text-gray-900">{selectedLog.user.name}</div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Email</label>
+                      <div className="mt-1 text-sm text-gray-900">{selectedLog.user.email}</div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">User ID</label>
+                      <div className="mt-1 text-sm text-gray-900">{selectedLog.userId}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -318,26 +179,56 @@ const AuditLogs: React.FC = () => {
             <div>
               <h4 className="text-lg font-medium text-gray-900 mb-4">Technical Details</h4>
               <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">IP Address</label>
-                    <div className="text-sm text-gray-900 font-mono">{selectedLog.ipAddress}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">User Agent</label>
-                    <div className="text-sm text-gray-900 font-mono break-all">{selectedLog.userAgent}</div>
-                  </div>
-                  {selectedLog.details && (
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedLog.method && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Details</label>
-                      <div className="text-sm text-gray-900 bg-white p-2 rounded border">
-                        {selectedLog.details}
-                      </div>
+                      <label className="block text-sm font-medium text-gray-500">HTTP Method</label>
+                      <div className="mt-1 text-sm text-gray-900">{selectedLog.method}</div>
+                    </div>
+                  )}
+                  {selectedLog.endpoint && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Endpoint</label>
+                      <div className="mt-1 text-sm text-gray-900">{selectedLog.endpoint}</div>
+                    </div>
+                  )}
+                  {selectedLog.ipAddress && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">IP Address</label>
+                      <div className="mt-1 text-sm text-gray-900">{selectedLog.ipAddress}</div>
+                    </div>
+                  )}
+                  {selectedLog.userAgent && (
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-500">User Agent</label>
+                      <div className="mt-1 text-sm text-gray-900 break-all">{selectedLog.userAgent}</div>
                     </div>
                   )}
                 </div>
               </div>
             </div>
+
+            {/* Error Message */}
+            {selectedLog.errorMessage && (
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">Error Details</h4>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="text-sm text-red-800">{selectedLog.errorMessage}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Metadata */}
+            {selectedLog.metadata && (
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">Additional Data</h4>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <pre className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {JSON.stringify(selectedLog.metadata, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end mt-6">
@@ -361,6 +252,26 @@ const AuditLogs: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-red-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Error Loading Audit Logs</h3>
+          <p className="mt-1 text-sm text-gray-500">{error}</p>
+          <div className="mt-6">
+            <button
+              onClick={() => fetchAuditLogs()}
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -370,35 +281,32 @@ const AuditLogs: React.FC = () => {
           <p className="text-gray-600">Monitor system activities and user actions</p>
         </div>
         <div className="flex space-x-3">
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
-            Export Logs
+          <button 
+            onClick={() => fetchAuditLogs()}
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Refresh
           </button>
         </div>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="text-2xl font-bold text-gray-900">{auditLogs.length}</div>
+          <div className="text-2xl font-bold text-gray-900">{pagination.total}</div>
           <div className="text-sm text-gray-600">Total Events</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="text-2xl font-bold text-green-600">
-            {auditLogs.filter(log => log.status === 'SUCCESS').length}
+            {auditLogs.filter(log => log.success).length}
           </div>
           <div className="text-sm text-gray-600">Successful</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="text-2xl font-bold text-red-600">
-            {auditLogs.filter(log => log.status === 'FAILED').length}
+            {auditLogs.filter(log => !log.success).length}
           </div>
           <div className="text-sm text-gray-600">Failed</div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="text-2xl font-bold text-yellow-600">
-            {auditLogs.filter(log => log.status === 'WARNING').length}
-          </div>
-          <div className="text-sm text-gray-600">Warnings</div>
         </div>
       </div>
 
@@ -419,20 +327,32 @@ const AuditLogs: React.FC = () => {
           </div>
           
           <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2"
           >
-            {categories.map(category => (
-              <option key={category} value={category}>
-                {category === 'ALL' ? 'All Categories' : category}
+            {actions.map(action => (
+              <option key={action} value={action}>
+                {action === 'ALL' ? 'All Actions' : action}
               </option>
             ))}
           </select>
           
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            value={resourceTypeFilter}
+            onChange={(e) => setResourceTypeFilter(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2"
+          >
+            {resourceTypes.map(resourceType => (
+              <option key={resourceType} value={resourceType}>
+                {resourceType === 'ALL' ? 'All Resources' : resourceType}
+              </option>
+            ))}
+          </select>
+          
+          <select
+            value={successFilter}
+            onChange={(e) => setSuccessFilter(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2"
           >
             {statuses.map(status => (
@@ -455,8 +375,9 @@ const AuditLogs: React.FC = () => {
           <button
             onClick={() => {
               setSearchTerm('');
-              setCategoryFilter('ALL');
-              setStatusFilter('ALL');
+              setActionFilter('ALL');
+              setResourceTypeFilter('ALL');
+              setSuccessFilter('ALL');
               setDateFilter('');
             }}
             className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
@@ -473,9 +394,6 @@ const AuditLogs: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Timestamp
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User & Action
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -485,7 +403,7 @@ const AuditLogs: React.FC = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  IP Address
+                  Timestamp
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -495,33 +413,34 @@ const AuditLogs: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(log.timestamp).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        {getCategoryIcon(log.category)}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          {getResourceTypeIcon(log.resourceType)}
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{log.userName}</div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {log.user?.name || 'Unknown User'}
+                        </div>
                         <div className="text-sm text-gray-500">{log.action}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{log.resource}</div>
+                    <div className="text-sm text-gray-900">{log.resourceType}</div>
                     {log.resourceId && (
-                      <div className="text-sm text-gray-500 font-mono">{log.resourceId}</div>
+                      <div className="text-sm text-gray-500">{log.resourceId}</div>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(log.status)}`}>
-                      {log.status}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(log.success)}`}>
+                      {log.success ? 'Success' : 'Failed'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                    {log.ipAddress}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(log.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
@@ -531,7 +450,7 @@ const AuditLogs: React.FC = () => {
                       }}
                       className="text-blue-600 hover:text-blue-900"
                     >
-                      <EyeIcon className="h-4 w-4" />
+                      View Details
                     </button>
                   </td>
                 </tr>
@@ -540,12 +459,60 @@ const AuditLogs: React.FC = () => {
           </table>
         </div>
 
-        {filteredLogs.length === 0 && (
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                disabled={pagination.page === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                disabled={pagination.page === pagination.totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing page <span className="font-medium">{pagination.page}</span> of{' '}
+                  <span className="font-medium">{pagination.totalPages}</span> ({pagination.total} total logs)
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                    disabled={pagination.page === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                    disabled={pagination.page === pagination.totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {filteredLogs.length === 0 && !loading && (
           <div className="text-center py-12">
             <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No audit logs found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Try adjusting your search or filter criteria.
+              {auditLogs.length === 0 ? 'No logs available yet.' : 'Try adjusting your search or filter criteria.'}
             </p>
           </div>
         )}

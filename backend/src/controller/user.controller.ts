@@ -5,6 +5,7 @@ import { asyncHandler } from '../utility/asyncHandler';
 import { ApiError } from '../utility/ApiError';
 import ApiResponse from '../utility/ApiResponse';
 import { generateToken } from '../utility/jwt';
+import { logAuth, logSecurityEvent } from '../utility/auditLogger';
 
 
 
@@ -103,6 +104,13 @@ const registerUser = asyncHandler(async (req: Request, res: Response): Promise<v
             role: user.role
         });
 
+        // Log successful registration
+        await logAuth('REGISTER', user.id, true, req, undefined, {
+            userRole: user.role,
+            region: user.region,
+            language: user.language
+        });
+
         res.status(201).json(
             new ApiResponse(201, { 
                 user,
@@ -142,12 +150,20 @@ const loginUser = asyncHandler(async (req: Request, res: Response): Promise<void
         });
 
         if (!user) {
+            // Log failed login attempt
+            await logSecurityEvent('FAILED_LOGIN', null, req, 'User not found', {
+                attemptedEmail: email
+            });
             throw new ApiError(401, "Invalid email or password.");
         }
 
         // Verify password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+            // Log failed login attempt
+            await logSecurityEvent('FAILED_LOGIN', user.id, req, 'Invalid password', {
+                attemptedEmail: email
+            });
             throw new ApiError(401, "Invalid email or password.");
         }
 
@@ -160,6 +176,13 @@ const loginUser = asyncHandler(async (req: Request, res: Response): Promise<void
 
         // Remove password from response
         const { password: _, ...userWithoutPassword } = user;
+
+        // Log successful login
+        await logAuth('LOGIN', user.id, true, req, undefined, {
+            userRole: user.role,
+            region: user.region,
+            language: user.language
+        });
 
         res.status(200).json(
             new ApiResponse(200, { 
@@ -331,9 +354,9 @@ const getUserSearchHistory = asyncHandler(async (req: AuthRequest, res: Response
 
 const getAllUsers = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
     // Check if user is admin
-    // if (req.user?.role !== 'ADMIN') {
-    //     throw new ApiError(403, "Admin access required.");
-    // }
+    if (req.user?.role !== 'ADMIN') {
+        throw new ApiError(403, "Admin access required.");
+    }
 
     const { page = 1, limit = 10, role, region, isActive } = req.query;
 

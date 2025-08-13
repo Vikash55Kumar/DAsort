@@ -7,107 +7,141 @@ import {
   MagnifyingGlassIcon,
   EyeIcon
 } from '@heroicons/react/24/outline';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'USER' | 'ADMIN';
-  region?: string;
-  language: string;
-  isActive: boolean;
-  createdAt: string;
-  lastLogin?: string;
-  searchCount: number;
-}
+import { adminService, type User } from '../../../../services/adminService';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'USER' | 'ADMIN'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0
+  });
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [pagination.page, pagination.limit]);
 
   const fetchUsers = async () => {
     try {
-      // TODO: Replace with actual API call
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          name: 'Rajesh Kumar',
-          email: 'rajesh.kumar@gov.in',
-          role: 'USER',
-          region: 'Delhi',
-          language: 'en',
-          isActive: true,
-          createdAt: '2024-01-15',
-          lastLogin: '2024-01-20',
-          searchCount: 45
-        },
-        {
-          id: '2',
-          name: 'Priya Sharma',
-          email: 'priya.sharma@gov.in',
-          role: 'ADMIN',
-          region: 'Mumbai',
-          language: 'hi',
-          isActive: true,
-          createdAt: '2024-01-10',
-          lastLogin: '2024-01-20',
-          searchCount: 123
-        },
-        {
-          id: '3',
-          name: 'Amit Singh',
-          email: 'amit.singh@gov.in',
-          role: 'USER',
-          region: 'Bangalore',
-          language: 'en',
-          isActive: false,
-          createdAt: '2024-01-05',
-          lastLogin: '2024-01-18',
-          searchCount: 12
-        }
-      ];
-      setUsers(mockUsers);
+      setLoading(true);
+      setError(null);
+      
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+
+      // Add filters if they're not 'ALL'
+      if (roleFilter !== 'ALL') {
+        params.role = roleFilter;
+      }
+      if (statusFilter !== 'ALL') {
+        params.isActive = statusFilter === 'ACTIVE';
+      }
+
+      const response = await adminService.getUsers(params);
+      setUsers(response.users);
+      setPagination(prev => ({
+        ...prev,
+        total: response.pagination.total,
+        totalPages: response.pagination.totalPages
+      }));
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      setError('Failed to fetch users. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Trigger refetch when filters change
+  useEffect(() => {
+    if (pagination.page === 1) {
+      fetchUsers();
+    } else {
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }
+  }, [roleFilter, statusFilter]);
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'ALL' || 
-                         (statusFilter === 'ACTIVE' && user.isActive) ||
-                         (statusFilter === 'INACTIVE' && !user.isActive);
-    
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch;
   });
 
   const handleToggleUserStatus = async (userId: string) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, isActive: !user.isActive } : user
-    ));
+    try {
+      const user = users.find(u => u.id === userId);
+      if (!user) return;
+
+      await adminService.updateUser(userId, { isActive: !user.isActive });
+      
+      // Update local state
+      setUsers(users.map(u => 
+        u.id === userId ? { ...u, isActive: !u.isActive } : u
+      ));
+    } catch (error) {
+      console.error('Failed to update user status:', error);
+      alert('Failed to update user status. Please try again.');
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
+    if (!confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    try {
+      await adminService.deleteUser(userId);
+      
+      // Update local state
       setUsers(users.filter(user => user.id !== userId));
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      alert('Failed to delete user. Please try again.');
+    }
+  };
+
+  const handleUpdateUserRole = async (userId: string, newRole: 'USER' | 'ADMIN') => {
+    try {
+      await adminService.updateUser(userId, { role: newRole });
+      
+      // Update local state
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, role: newRole } : user
+      ));
+      
+      setShowUserModal(false);
+    } catch (error) {
+      console.error('Failed to update user role:', error);
+      alert('Failed to update user role. Please try again.');
     }
   };
 
   const UserModal: React.FC = () => {
-    if (!selectedUser) return null;
+    const [editableUser, setEditableUser] = useState<User | null>(selectedUser);
+
+    useEffect(() => {
+      setEditableUser(selectedUser);
+    }, [selectedUser]);
+
+    if (!selectedUser || !editableUser) return null;
+
+    const handleSave = async () => {
+      if (editableUser.role !== selectedUser.role) {
+        await handleUpdateUserRole(editableUser.id, editableUser.role);
+      } else {
+        setShowUserModal(false);
+      }
+    };
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -128,7 +162,8 @@ const UserManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input
                   type="text"
-                  value={selectedUser.name}
+                  value={editableUser.name}
+                  onChange={(e) => setEditableUser({ ...editableUser, name: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   readOnly
                 />
@@ -137,7 +172,7 @@ const UserManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
                   type="email"
-                  value={selectedUser.email}
+                  value={editableUser.email}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   readOnly
                 />
@@ -147,34 +182,47 @@ const UserManagement: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                <select className="w-full border border-gray-300 rounded-md px-3 py-2">
-                  <option value="USER" selected={selectedUser.role === 'USER'}>USER</option>
-                  <option value="ADMIN" selected={selectedUser.role === 'ADMIN'}>ADMIN</option>
+                <select 
+                  value={editableUser.role}
+                  onChange={(e) => setEditableUser({ ...editableUser, role: e.target.value as 'USER' | 'ADMIN' })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value="USER">USER</option>
+                  <option value="ADMIN">ADMIN</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
                 <input
                   type="text"
-                  value={selectedUser.region || ''}
+                  value={editableUser.region || ''}
+                  onChange={(e) => setEditableUser({ ...editableUser, region: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
+                            <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
-                <select className="w-full border border-gray-300 rounded-md px-3 py-2">
-                  <option value="en" selected={selectedUser.language === 'en'}>English</option>
-                  <option value="hi" selected={selectedUser.language === 'hi'}>Hindi</option>
+                <select 
+                  value={editableUser.language}
+                  onChange={(e) => setEditableUser({ ...editableUser, language: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value="en">English</option>
+                  <option value="hi">Hindi</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select className="w-full border border-gray-300 rounded-md px-3 py-2">
-                  <option value="true" selected={selectedUser.isActive}>Active</option>
-                  <option value="false" selected={!selectedUser.isActive}>Inactive</option>
+                <select 
+                  value={editableUser.isActive ? 'ACTIVE' : 'INACTIVE'}
+                  onChange={(e) => setEditableUser({ ...editableUser, isActive: e.target.value === 'ACTIVE' })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
                 </select>
               </div>
             </div>
@@ -202,7 +250,7 @@ const UserManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Search Count</label>
                 <input
                   type="text"
-                  value={selectedUser.searchCount.toString()}
+                  value={selectedUser._count?.searches?.toString() || '0'}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   readOnly
                 />
@@ -217,7 +265,10 @@ const UserManagement: React.FC = () => {
             >
               Cancel
             </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            <button 
+              onClick={handleSave}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
               Save Changes
             </button>
           </div>
@@ -230,6 +281,23 @@ const UserManagement: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 mb-2">❌ Error</div>
+          <div className="text-gray-600">{error}</div>
+          <button 
+            onClick={() => fetchUsers()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -266,7 +334,9 @@ const UserManagement: React.FC = () => {
           
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as 'ALL' | 'USER' | 'ADMIN')}
+            onChange={(e) => {
+              setRoleFilter(e.target.value as 'ALL' | 'USER' | 'ADMIN');
+            }}
             className="border border-gray-300 rounded-md px-3 py-2"
           >
             <option value="ALL">All Roles</option>
@@ -276,7 +346,9 @@ const UserManagement: React.FC = () => {
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE');
+            }}
             className="border border-gray-300 rounded-md px-3 py-2"
           >
             <option value="ALL">All Status</option>
@@ -353,7 +425,7 @@ const UserManagement: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.searchCount}
+                    {user._count?.searches || 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
@@ -398,13 +470,68 @@ const UserManagement: React.FC = () => {
           </table>
         </div>
 
-        {filteredUsers.length === 0 && (
+        {filteredUsers.length === 0 && !loading && (
           <div className="text-center py-12">
             <UserGroupIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
             <p className="mt-1 text-sm text-gray-500">
               Try adjusting your search or filter criteria.
             </p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                disabled={pagination.page === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                disabled={pagination.page === pagination.totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing{' '}
+                  <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span>
+                  {' '}to{' '}
+                  <span className="font-medium">
+                    {Math.min(pagination.page * pagination.limit, pagination.total)}
+                  </span>
+                  {' '}of{' '}
+                  <span className="font-medium">{pagination.total}</span>
+                  {' '}results
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                    disabled={pagination.page === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                    disabled={pagination.page === pagination.totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
           </div>
         )}
       </div>

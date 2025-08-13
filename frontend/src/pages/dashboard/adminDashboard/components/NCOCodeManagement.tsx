@@ -9,117 +9,125 @@ import {
   MagnifyingGlassIcon,
   EyeIcon
 } from '@heroicons/react/24/outline';
-
-interface NCOCode {
-  id: string;
-  ncoCode: string;
-  title: string;
-  description: string;
-  majorGroup: string;
-  subMajorGroup: string;
-  minorGroup: string;
-  unitGroup: string;
-  sector?: string;
-  skillLevel?: string;
-  educationLevel?: string;
-  keywords: string[];
-  synonyms: string[];
-  version: string;
-  isActive: boolean;
-  isVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import { adminService, type NCOCode } from '../../../../services/adminService';
 
 const NCOCodeManagement: React.FC = () => {
   const [ncoCodes, setNCOCodes] = useState<NCOCode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'VERIFIED' | 'UNVERIFIED'>('ALL');
   const [selectedCode, setSelectedCode] = useState<NCOCode | null>(null);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
 
   useEffect(() => {
     fetchNCOCodes();
-  }, []);
+  }, [pagination.page, pagination.limit, statusFilter]);
 
   const fetchNCOCodes = async () => {
     try {
-      // TODO: Replace with actual API call
-      const mockNCOCodes: NCOCode[] = [
-        {
-          id: '1',
-          ncoCode: '75310110',
-          title: 'Baker',
-          description: 'Bakers mix and bake ingredients to produce bread, cakes, pastries and other baked goods.',
-          majorGroup: '7',
-          subMajorGroup: '75',
-          minorGroup: '753',
-          unitGroup: '7531',
-          sector: 'Food Processing',
-          skillLevel: 'Skill Level 2',
-          educationLevel: 'Secondary',
-          keywords: ['baker', 'bread', 'pastry', 'baking', 'flour'],
-          synonyms: ['bread maker', 'pastry chef'],
-          version: 'NCO-2015',
-          isActive: true,
-          isVerified: true,
-          createdAt: '2024-01-15',
-          updatedAt: '2024-01-15'
-        },
-        {
-          id: '2',
-          ncoCode: '25120100',
-          title: 'Software Developer',
-          description: 'Software developers design, develop and test software systems and applications.',
-          majorGroup: '2',
-          subMajorGroup: '25',
-          minorGroup: '251',
-          unitGroup: '2512',
-          sector: 'Information Technology',
-          skillLevel: 'Skill Level 4',
-          educationLevel: 'Bachelor',
-          keywords: ['software', 'developer', 'programming', 'coding', 'application'],
-          synonyms: ['programmer', 'software engineer'],
-          version: 'NCO-2015',
-          isActive: true,
-          isVerified: false,
-          createdAt: '2024-01-10',
-          updatedAt: '2024-01-18'
-        }
-      ];
-      setNCOCodes(mockNCOCodes);
+      setLoading(true);
+      setError(null);
+      
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit
+      };
+
+      if (statusFilter !== 'ALL') {
+        params.isVerified = statusFilter === 'VERIFIED';
+      }
+
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim();
+      }
+
+      const response = await adminService.getAllNCOCodes(params);
+      
+      // Ensure we have the expected structure
+      if (response && response.ncoCodes && Array.isArray(response.ncoCodes)) {
+        setNCOCodes(response.ncoCodes);
+        setPagination(prev => ({
+          ...prev,
+          total: response.pagination?.total || response.ncoCodes.length,
+          totalPages: response.pagination?.totalPages || 1
+        }));
+      } else {
+        console.warn('Unexpected API response structure:', response);
+        setNCOCodes([]);
+        setPagination(prev => ({
+          ...prev,
+          total: 0,
+          totalPages: 1
+        }));
+      }
     } catch (error) {
       console.error('Failed to fetch NCO codes:', error);
+      setError('Failed to fetch NCO codes. Please try again.');
+      setNCOCodes([]); // Ensure ncoCodes is always an array
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredCodes = ncoCodes.filter(code => {
+  // Search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (pagination.page === 1) {
+        fetchNCOCodes();
+      } else {
+        setPagination(prev => ({ ...prev, page: 1 }));
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const filteredCodes = (ncoCodes || []).filter(code => {
+    if (!searchTerm.trim()) return true;
+    
     const matchesSearch = 
-      code.ncoCode.includes(searchTerm) ||
-      code.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      code.description.toLowerCase().includes(searchTerm.toLowerCase());
+      code.ncoCode?.includes(searchTerm) ||
+      code.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      code.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = 
-      statusFilter === 'ALL' ||
-      (statusFilter === 'VERIFIED' && code.isVerified) ||
-      (statusFilter === 'UNVERIFIED' && !code.isVerified);
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   const handleVerifyCode = async (codeId: string) => {
-    setNCOCodes(ncoCodes.map(code => 
-      code.id === codeId ? { ...code, isVerified: true } : code
-    ));
+    try {
+      await adminService.updateNCOCode(codeId, { isVerified: true });
+      setNCOCodes(prevCodes => 
+        (prevCodes || []).map(code => 
+          code.id === codeId ? { ...code, isVerified: true } : code
+        )
+      );
+    } catch (error) {
+      console.error('Failed to verify NCO code:', error);
+      alert('Failed to verify NCO code. Please try again.');
+    }
   };
 
   const handleDeleteCode = async (codeId: string) => {
-    if (confirm('Are you sure you want to delete this NCO code?')) {
-      setNCOCodes(ncoCodes.filter(code => code.id !== codeId));
+    if (!confirm('Are you sure you want to delete this NCO code?')) {
+      return;
+    }
+
+    try {
+      await adminService.deleteNCOCode(codeId);
+      setNCOCodes(prevCodes => 
+        (prevCodes || []).filter(code => code.id !== codeId)
+      );
+    } catch (error) {
+      console.error('Failed to delete NCO code:', error);
+      alert('Failed to delete NCO code. Please try again.');
     }
   };
 
@@ -306,7 +314,7 @@ const NCOCodeManagement: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
                   <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md min-h-[100px]">
-                    {selectedCode.keywords.map((keyword, index) => (
+                    {(selectedCode.keywords || []).map((keyword, index) => (
                       <span key={index} className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-md">
                         {keyword}
                         {isEditing && (
@@ -316,12 +324,15 @@ const NCOCodeManagement: React.FC = () => {
                         )}
                       </span>
                     ))}
+                    {(!selectedCode.keywords || selectedCode.keywords.length === 0) && (
+                      <span className="text-gray-500 text-sm">No keywords available</span>
+                    )}
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Synonyms</label>
                   <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md min-h-[100px]">
-                    {selectedCode.synonyms.map((synonym, index) => (
+                    {(selectedCode.synonyms || []).map((synonym, index) => (
                       <span key={index} className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-sm rounded-md">
                         {synonym}
                         {isEditing && (
@@ -331,6 +342,9 @@ const NCOCodeManagement: React.FC = () => {
                         )}
                       </span>
                     ))}
+                    {(!selectedCode.synonyms || selectedCode.synonyms.length === 0) && (
+                      <span className="text-gray-500 text-sm">No synonyms available</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -343,7 +357,7 @@ const NCOCodeManagement: React.FC = () => {
                 <div className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={selectedCode.isActive}
+                    checked={selectedCode.isActive !== false}
                     disabled={!isEditing}
                     className="mr-2"
                   />
@@ -352,7 +366,7 @@ const NCOCodeManagement: React.FC = () => {
                 <div className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={selectedCode.isVerified}
+                    checked={selectedCode.isVerified === true}
                     disabled={!isEditing}
                     className="mr-2"
                   />
@@ -360,11 +374,11 @@ const NCOCodeManagement: React.FC = () => {
                 </div>
                 <div>
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    selectedCode.isVerified 
+                    (selectedCode.isVerified === true)
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {selectedCode.isVerified ? 'Verified' : 'Pending Verification'}
+                    {(selectedCode.isVerified === true) ? 'Verified' : 'Pending Verification'}
                   </span>
                 </div>
               </div>
@@ -373,8 +387,10 @@ const NCOCodeManagement: React.FC = () => {
 
           <div className="flex justify-between mt-8">
             <div className="text-sm text-gray-500">
-              Created: {new Date(selectedCode.createdAt).toLocaleDateString()} | 
-              Updated: {new Date(selectedCode.updatedAt).toLocaleDateString()}
+              Created: {new Date(selectedCode.createdAt).toLocaleDateString()}
+              {selectedCode.updatedAt && (
+                <> | Updated: {new Date(selectedCode.updatedAt).toLocaleDateString()}</>
+              )}
             </div>
             <div className="flex space-x-3">
               {isEditing ? (
@@ -415,6 +431,23 @@ const NCOCodeManagement: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 mb-2">❌ Error</div>
+          <div className="text-gray-600">{error}</div>
+          <button 
+            onClick={() => fetchNCOCodes()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -437,24 +470,24 @@ const NCOCodeManagement: React.FC = () => {
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="text-2xl font-bold text-gray-900">{ncoCodes.length}</div>
+          <div className="text-2xl font-bold text-gray-900">{ncoCodes?.length || 0}</div>
           <div className="text-sm text-gray-600">Total NCO Codes</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="text-2xl font-bold text-green-600">
-            {ncoCodes.filter(code => code.isVerified).length}
+            {ncoCodes?.filter(code => code.isVerified === true).length || 0}
           </div>
           <div className="text-sm text-gray-600">Verified</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="text-2xl font-bold text-yellow-600">
-            {ncoCodes.filter(code => !code.isVerified).length}
+            {ncoCodes?.filter(code => code.isVerified !== true).length || 0}
           </div>
           <div className="text-sm text-gray-600">Pending Verification</div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="text-2xl font-bold text-blue-600">
-            {ncoCodes.filter(code => code.isActive).length}
+            {ncoCodes?.filter(code => code.isActive !== false).length || 0}
           </div>
           <div className="text-sm text-gray-600">Active Codes</div>
         </div>
@@ -530,18 +563,18 @@ const NCOCodeManagement: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-col space-y-1">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        code.isVerified 
+                        (code.isVerified === true)
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {code.isVerified ? 'Verified' : 'Pending'}
+                        {(code.isVerified === true) ? 'Verified' : 'Pending'}
                       </span>
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        code.isActive 
+                        (code.isActive !== false)
                           ? 'bg-blue-100 text-blue-800' 
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {code.isActive ? 'Active' : 'Inactive'}
+                        {(code.isActive !== false) ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                   </td>
@@ -566,7 +599,7 @@ const NCOCodeManagement: React.FC = () => {
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
-                      {!code.isVerified && (
+                      {!(code.isVerified === true) && (
                         <button
                           onClick={() => handleVerifyCode(code.id)}
                           className="text-green-600 hover:text-green-900"

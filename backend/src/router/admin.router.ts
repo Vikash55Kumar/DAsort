@@ -20,14 +20,14 @@ router.get("/dashboard", authenticate, getDashboardStats);
 router.get("/analytics",authenticate, getAnalytics);
 
 // NCO Code management
-router.post("/nco-codes", createNCOCode);
-router.put("/nco-codes/:id", updateNCOCode);
-router.delete("/nco-codes/:id", deleteNCOCode);
-router.post("/nco-codes/bulk-import", bulkImportNCOCodes);
+router.post("/nco-codes", authenticate, createNCOCode);
+router.put("/nco-codes/:id", authenticate, updateNCOCode);
+router.delete("/nco-codes/:id", authenticate, deleteNCOCode);
+router.post("/nco-codes/bulk-import", authenticate, bulkImportNCOCodes);
 
 // System configuration
-router.get("/system-config", getSystemConfigs);
-router.put("/system-config", updateSystemConfig);
+router.get("/system-config", authenticate, getSystemConfigs);
+router.put("/system-config", authenticate, updateSystemConfig);
 
 // Audit and monitoring
 router.get("/audit-logs", authenticate, getAuditLogs);
