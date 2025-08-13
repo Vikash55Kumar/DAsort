@@ -3,6 +3,7 @@ import prisma from '../prismaClient';
 import { ApiError } from '../utility/ApiError';
 import ApiResponse from '../utility/ApiResponse';
 import { asyncHandler } from '../utility/asyncHandler';
+import { logUserAction, logNCOAction, logConfigAction, logDatasetAction } from '../utility/auditLogger';
 
 // Types
 interface AuthRequest extends Request {
@@ -242,6 +243,13 @@ const createNCOCode = asyncHandler(async (req: AuthRequest, res: Response): Prom
                 version,
                 isVerified: true // Admin-created codes are auto-verified
             }
+        });
+
+        // Log the NCO code creation
+        await logNCOAction(req, 'CREATE_NCO', newNCOCode.id, {
+            ncoCode: newNCOCode.ncoCode,
+            title: newNCOCode.title,
+            majorGroup: newNCOCode.majorGroup
         });
 
         res.status(201).json(

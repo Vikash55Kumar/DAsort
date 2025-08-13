@@ -17,6 +17,7 @@ import Register from './pages/auth/Register';
 
 // Private Pages
 import Dashboard from './pages/dashboard/Dashboard';
+import AdminDashboard from './pages/dashboard/adminDashboard/AdminDashboard';
 import UserReports from './pages/dashboard/userDashboard/UserReports';
 import SearchHistory from './pages/dashboard/userDashboard/SearchHistory';
 import HomePage from './pages/home/HomePage';
@@ -61,6 +62,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/user-reports" element={<UserReports />} />
             <Route path="/search-history" element={<SearchHistory />} />
             <Route path="/active" element={<div>frontend active</div>} />
