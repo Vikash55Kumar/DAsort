@@ -29,5 +29,9 @@ router.get("/get-allUsers", authenticate, requireAdmin, getAllUsers);
 router.put("/:userId/role", authenticate, requireAdmin, updateUserRole);
 router.delete("/:userId", authenticate, requireAdmin, deleteUser);
 
+router.get('/active', (req, res) => {
+  res.send('active');
+});
+
 export default router;
 
