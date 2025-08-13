@@ -141,6 +141,10 @@ def search_nco_data(user_input, df, index, top_k=5):
 def home():
     return render_template("home.html")
 
+@app.route("/active", methods=["GET"])
+def active():
+    return "active"
+
 @app.route("/search", methods=["GET"])
 def search():
     query = request.args.get("q", "")
@@ -150,5 +154,5 @@ def search():
     return jsonify(matches)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  
+    port = int(os.environ.get("PORT", 8000))  
     app.run(debug=True, host='0.0.0.0', port=port)
