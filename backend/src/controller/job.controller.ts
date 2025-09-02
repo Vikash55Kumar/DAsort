@@ -3,6 +3,7 @@ import prisma from '../prismaClient';
 import { ApiError } from '../utility/ApiError';
 import ApiResponse from '../utility/ApiResponse';
 import { asyncHandler } from '../utility/asyncHandler';
+import axios from 'axios';
 
 // Types
 interface AuthRequest extends Request {
@@ -69,68 +70,150 @@ const searchJobs = asyncHandler(async (req: AuthRequest, res: Response): Promise
             }
         });
 
-        // TODO: Call Python AI service for semantic search
-        // For now, we'll do a basic keyword search as fallback
-        const basicResults = await prisma.nCOCode.findMany({
-            where: {
-                OR: [
-                    { title: { contains: query, mode: 'insensitive' } },
-                    { description: { contains: query, mode: 'insensitive' } },
-                    { keywords: { hasSome: query.toLowerCase().split(' ') } },
-                    { synonyms: { hasSome: query.toLowerCase().split(' ') } }
-                ],
-                isActive: true
-            },
-            take: limit,
-            orderBy: [
-                { isVerified: 'desc' },
-                { title: 'asc' }
-            ]
-        });
+        // Call Python AI service for semantic search
+        let aiResults: any[] = [];
+        let aiServiceStatus = 'success';
+        let processingStart = Date.now();
+        try {
+   
+            const aiRes = await axios.get(`${process.env.AI_MODEL_URL}/search`, {
+                params: { q: query },
+                timeout: 5000
+            });
 
-        // Create search results with basic scoring
-        const searchResults = await Promise.all(
-            basicResults.map(async (ncoCode, index) => {
-                return await prisma.searchResult.create({
-                    data: {
-                        searchId: searchHistory.id,
-                        ncoCodeId: ncoCode.id,
-                        relevanceScore: 0.8 - (index * 0.1), // Simple scoring
-                        confidenceScore: 0.7 - (index * 0.05),
-                        rank: index + 1,
-                        matchType: 'KEYWORD', // Default for basic search
-                        matchedKeywords: query.toLowerCase().split(' '),
-                        explanation: `Matched keywords in ${ncoCode.title}`
-                    },
-                    include: {
-                        ncoCode: {
-                            select: {
-                                id: true,
-                                ncoCode: true,
-                                title: true,
-                                description: true,
-                                majorGroup: true,
-                                subMajorGroup: true,
-                                minorGroup: true,
-                                unitGroup: true,
-                                sector: true,
-                                skillLevel: true,
-                                educationLevel: true,
-                                keywords: true,
-                                version: true
+            if (Array.isArray(aiRes.data)) {
+                aiResults = aiRes.data.filter(
+                    (item: any) =>
+                        item.Title && item.Title !== 'nan' &&
+                        item.Title_Code && item.Title_Code !== 'nan' &&
+                        item.Description && item.Description !== 'nan'
+                );
+            }
+        } catch (err) {
+            aiServiceStatus = 'error';
+        }
+
+        let searchResults: any[] = [];
+        if (aiResults.length > 0) {
+            // Save AI results to DB
+            searchResults = await Promise.all(
+                aiResults.slice(0, limit).map(async (item: any, index: number) => {
+                    // Try to find NCOCode by code, fallback to create minimal
+                    let ncoCode = await prisma.nCOCode.findUnique({ where: { ncoCode: item.Title_Code } });
+                    if (!ncoCode) {
+                        ncoCode = await prisma.nCOCode.create({
+                            data: {
+                                ncoCode: item.Title_Code,
+                                title: item.Title,
+                                description: item.Description,
+                                majorGroup: '',
+                                subMajorGroup: '',
+                                minorGroup: '',
+                                unitGroup: '',
+                                sector: '',
+                                skillLevel: '',
+                                educationLevel: '',
+                                keywords: [],
+                                version: 'AI',
+                                isVerified: false,
+                                isActive: true
+                            }
+                        });
+                    }
+                    return await prisma.searchResult.create({
+                        data: {
+                            searchId: searchHistory.id,
+                            ncoCodeId: ncoCode.id,
+                            relevanceScore: parseFloat(item.Score) / 100 || 0.7,
+                            confidenceScore: parseFloat(item.Score) / 100 || 0.7,
+                            rank: index + 1,
+                            matchType: 'SEMANTIC', // Use correct enum value from MatchType
+                            matchedKeywords: [query],
+                            explanation: 'AI semantic match'
+                        },
+                        include: {
+                            ncoCode: {
+                                select: {
+                                    id: true,
+                                    ncoCode: true,
+                                    title: true,
+                                    description: true,
+                                    majorGroup: true,
+                                    subMajorGroup: true,
+                                    minorGroup: true,
+                                    unitGroup: true,
+                                    sector: true,
+                                    skillLevel: true,
+                                    educationLevel: true,
+                                    keywords: true,
+                                    version: true
+                                }
                             }
                         }
-                    }
-                });
-            })
-        );
+                    });
+                })
+            );
+        } else {
+            // Fallback: basic keyword search from DB
+            const basicResults = await prisma.nCOCode.findMany({
+                where: {
+                    OR: [
+                        { title: { contains: query, mode: 'insensitive' } },
+                        { description: { contains: query, mode: 'insensitive' } },
+                        { keywords: { hasSome: query.toLowerCase().split(' ') } },
+                        { synonyms: { hasSome: query.toLowerCase().split(' ') } }
+                    ],
+                    isActive: true
+                },
+                take: limit,
+                orderBy: [
+                    { isVerified: 'desc' },
+                    { title: 'asc' }
+                ]
+            });
+            searchResults = await Promise.all(
+                basicResults.map(async (ncoCode, index) => {
+                    return await prisma.searchResult.create({
+                        data: {
+                            searchId: searchHistory.id,
+                            ncoCodeId: ncoCode.id,
+                            relevanceScore: 0.8 - (index * 0.1),
+                            confidenceScore: 0.7 - (index * 0.05),
+                            rank: index + 1,
+                            matchType: 'KEYWORD',
+                            matchedKeywords: query.toLowerCase().split(' '),
+                            explanation: `Matched keywords in ${ncoCode.title}`
+                        },
+                        include: {
+                            ncoCode: {
+                                select: {
+                                    id: true,
+                                    ncoCode: true,
+                                    title: true,
+                                    description: true,
+                                    majorGroup: true,
+                                    subMajorGroup: true,
+                                    minorGroup: true,
+                                    unitGroup: true,
+                                    sector: true,
+                                    skillLevel: true,
+                                    educationLevel: true,
+                                    keywords: true,
+                                    version: true
+                                }
+                            }
+                        }
+                    });
+                })
+            );
+        }
 
-        // Update search history with results count
+        // Update search history with results count and AI status
         await prisma.searchHistory.update({
             where: { id: searchHistory.id },
             data: {
                 totalResults: searchResults.length,
-                aiServiceStatus: 'success' // TODO: Update based on AI service call
+                aiServiceStatus
             }
         });
 
@@ -140,8 +223,8 @@ const searchJobs = asyncHandler(async (req: AuthRequest, res: Response): Promise
                 query,
                 totalResults: searchResults.length,
                 results: searchResults,
-                processingTime: Date.now() - searchHistory.searchedAt.getTime()
-            }, "Job search completed successfully")
+                processingTime: Date.now() - processingStart
+            }, aiServiceStatus === 'success' ? "Job search completed successfully" : "Job search completed with fallback to DB")
         );
 
     } catch (error) {
