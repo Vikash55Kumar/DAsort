@@ -3,11 +3,9 @@ import {
   ChartBarIcon, 
   UsersIcon, 
   DocumentMagnifyingGlassIcon,
-  FolderIcon,
 //   Cog6ToothIcon,
   ClipboardDocumentListIcon,
   ShieldCheckIcon,
-  BellIcon,
   CalendarIcon,
   CpuChipIcon
 } from '@heroicons/react/24/outline';
@@ -15,10 +13,8 @@ import { format } from 'date-fns';
 import SystemOverview from './components/SystemOverview';
 import UserManagement from './components/UserManagement';
 import NCOCodeManagement from './components/NCOCodeManagement';
-import SearchManagement from './components/SearchManagement';
 import DatasetManagement from './components/DatasetManagement';
 // import SystemConfiguration from './components/SystemConfiguration';
-import Reports from './components/Reports';
 import AuditLogs from './components/AuditLogs';
 
 type AdminTab = 
