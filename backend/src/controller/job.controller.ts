@@ -75,7 +75,8 @@ const searchJobs = asyncHandler(async (req: AuthRequest, res: Response): Promise
         let aiServiceStatus = 'success';
         let processingStart = Date.now();
         try {
-            const aiRes = await axios.get('http://127.0.0.1:8000/search', {
+   
+            const aiRes = await axios.get(`${process.env.AI_MODEL_URL}/search`, {
                 params: { q: query },
                 timeout: 5000
             });

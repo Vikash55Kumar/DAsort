@@ -47,10 +47,10 @@ const AdminDashboard: React.FC = () => {
     { id: 'overview', name: 'System Overview', icon: ChartBarIcon, component: SystemOverview },
     { id: 'users', name: 'User Management', icon: UsersIcon, component: UserManagement },
     { id: 'nco-codes', name: 'NCO Codes', icon: DocumentMagnifyingGlassIcon, component: NCOCodeManagement },
-    { id: 'searches', name: 'Search Management', icon: FolderIcon, component: SearchManagement },
+    // { id: 'searches', name: 'Search Management', icon: FolderIcon, component: SearchManagement },
     { id: 'datasets', name: 'Datasets', icon: ClipboardDocumentListIcon, component: DatasetManagement },
     // { id: 'config', name: 'System Config', icon: Cog6ToothIcon, component: SystemConfiguration },
-    { id: 'reports', name: 'Reports', icon: BellIcon, component: Reports },
+    // { id: 'reports', name: 'Reports', icon: BellIcon, component: Reports },
     { id: 'audit', name: 'Audit Logs', icon: ShieldCheckIcon, component: AuditLogs },
   ];
 
