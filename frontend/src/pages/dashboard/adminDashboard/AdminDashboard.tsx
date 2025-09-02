@@ -3,11 +3,9 @@ import {
   ChartBarIcon, 
   UsersIcon, 
   DocumentMagnifyingGlassIcon,
-  FolderIcon,
 //   Cog6ToothIcon,
   ClipboardDocumentListIcon,
   ShieldCheckIcon,
-  BellIcon,
   CalendarIcon,
   CpuChipIcon
 } from '@heroicons/react/24/outline';
@@ -15,10 +13,8 @@ import { format } from 'date-fns';
 import SystemOverview from './components/SystemOverview';
 import UserManagement from './components/UserManagement';
 import NCOCodeManagement from './components/NCOCodeManagement';
-import SearchManagement from './components/SearchManagement';
 import DatasetManagement from './components/DatasetManagement';
 // import SystemConfiguration from './components/SystemConfiguration';
-import Reports from './components/Reports';
 import AuditLogs from './components/AuditLogs';
 
 type AdminTab = 
@@ -47,10 +43,10 @@ const AdminDashboard: React.FC = () => {
     { id: 'overview', name: 'System Overview', icon: ChartBarIcon, component: SystemOverview },
     { id: 'users', name: 'User Management', icon: UsersIcon, component: UserManagement },
     { id: 'nco-codes', name: 'NCO Codes', icon: DocumentMagnifyingGlassIcon, component: NCOCodeManagement },
-    { id: 'searches', name: 'Search Management', icon: FolderIcon, component: SearchManagement },
+    // { id: 'searches', name: 'Search Management', icon: FolderIcon, component: SearchManagement },
     { id: 'datasets', name: 'Datasets', icon: ClipboardDocumentListIcon, component: DatasetManagement },
     // { id: 'config', name: 'System Config', icon: Cog6ToothIcon, component: SystemConfiguration },
-    { id: 'reports', name: 'Reports', icon: BellIcon, component: Reports },
+    // { id: 'reports', name: 'Reports', icon: BellIcon, component: Reports },
     { id: 'audit', name: 'Audit Logs', icon: ShieldCheckIcon, component: AuditLogs },
   ];
 
