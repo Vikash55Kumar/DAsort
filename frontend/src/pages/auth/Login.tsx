@@ -155,6 +155,11 @@ const Login: React.FC = () => {
               Create one
             </Link>
           </p>
+
+          {/* Demo account */}
+          <p className="text-center text-sm text-gray-500 mt-4">
+            For demo access, email <strong>test@gmail.com</strong> and password <strong>DAsort</strong>
+          </p>
         </form>
       </div>
     </div>
